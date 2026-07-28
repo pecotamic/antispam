@@ -16,6 +16,11 @@
       "Pecotamic\\Antispam\\": "src"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests"
+    }
+  },
   "extra": {
     "statamic": {
       "name": "Pecotamic Antispam",
@@ -32,5 +37,10 @@
       "name": "Werner Freytag",
       "email": "wf@pecora.de"
     }
-  ]
+  ],
+  "require-dev": {
+    "orchestra/testbench": "^11.0",
+    "phpunit/phpunit": "^13",
+    "mockery/mockery": "^1.6"
+  }
 }
