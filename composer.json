@@ -1,0 +1,36 @@
+{
+  "name": "pecotamic/antispam",
+  "description": "Silent server-side timing and content based spam protection for Statamic forms",
+  "type": "statamic-addon",
+  "license": "MIT",
+  "keywords": [
+    "statamic",
+    "spam"
+  ],
+  "require": {
+    "php": "^8.2",
+    "statamic/cms": "^5.0|^6.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Pecotamic\\Antispam\\": "src"
+    }
+  },
+  "extra": {
+    "statamic": {
+      "name": "Pecotamic Antispam",
+      "description": "Silent server-side protection for Statamic forms"
+    },
+    "laravel": {
+      "providers": [
+        "Pecotamic\\Antispam\\ServiceProvider"
+      ]
+    }
+  },
+  "authors": [
+    {
+      "name": "Werner Freytag",
+      "email": "wf@pecora.de"
+    }
+  ]
+}
