@@ -31,7 +31,7 @@ class Antispam
             ->implode("\n");
 
         return collect(config('pecotamic.antispam.patterns', []))
-            ->contains(fn($pattern) => @preg_match($pattern, $content) === 1);
+            ->contains(fn($pattern) => preg_match($pattern, $content) === 1);
     }
 
     private function protects(string $handle): bool
