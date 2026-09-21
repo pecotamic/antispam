@@ -3,35 +3,49 @@
 namespace Pecotamic\Antispam;
 
 use Illuminate\Http\Request;
-use Pecotamic\Antispam\Http\Middleware\IssueFormTimingCookie;
+use Pecotamic\Antispam\Rules\Rule;
 use Statamic\Contracts\Forms\Submission;
 
 class Antispam
 {
+    /**
+     * @param iterable<Rule> $rules
+     */
     public function __construct(
-        private IssueFormTimingCookie $timing,
-        private Request $request,
+        private readonly iterable $rules,
+        private readonly Request $request,
     ) {
     }
 
     public function rejects(Submission $submission): bool
     {
-        if (!$this->protects($submission->form()->handle())) {
-            return false;
+        return $this->assess($submission)->rejected();
+    }
+
+    public function assess(Submission $submission): Assessment
+    {
+        $candidate = new Candidate($submission, $this->request);
+        $threshold = (int) config('pecotamic.antispam.threshold', 100);
+
+        if (!$this->protects($candidate->formHandle())) {
+            return new Assessment([], 0, $threshold);
         }
 
-        if (!$this->timing->isPlausible(
-            $this->request->cookie($this->timing->cookieName())
-        )) {
-            return true;
+        $reasons = [];
+        $score = 0;
+
+        foreach ($this->rules as $rule) {
+            if ($rule->weight() === 0) {
+                continue;
+            }
+
+            if ($reason = $rule->detects($candidate)) {
+                $reasons[$rule->handle()] = $reason;
+                $score += $rule->weight();
+            }
         }
 
-        $content = $submission->data()
-            ->filter(fn($value) => is_scalar($value))
-            ->implode("\n");
-
-        return collect(config('pecotamic.antispam.patterns', []))
-            ->contains(fn($pattern) => preg_match($pattern, $content) === 1);
+        return new Assessment($reasons, $score, $threshold);
     }
 
     private function protects(string $handle): bool

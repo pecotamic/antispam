@@ -4,11 +4,30 @@ namespace Pecotamic\Antispam;
 
 use Pecotamic\Antispam\Http\Middleware\IssueFormTimingCookie;
 use Pecotamic\Antispam\Listeners\RejectSpamSubmission;
+use Pecotamic\Antispam\Rules\Gibberish;
+use Pecotamic\Antispam\Rules\Patterns;
+use Pecotamic\Antispam\Rules\Rule;
+use Pecotamic\Antispam\Rules\Shouting;
+use Pecotamic\Antispam\Rules\Timing;
 use Statamic\Events\FormSubmitted;
 use Statamic\Providers\AddonServiceProvider;
 
 class ServiceProvider extends AddonServiceProvider
 {
+    /**
+     * The rules ship with the addon rather than being listed in each site's
+     * config: sites tune weights and thresholds, they do not assemble rule
+     * sets. A weight of 0 switches a rule off.
+     *
+     * @var array<class-string<Rule>>
+     */
+    private const RULES = [
+        Timing::class,
+        Patterns::class,
+        Gibberish::class,
+        Shouting::class,
+    ];
+
     protected $listen = [
         FormSubmitted::class => [
             RejectSpamSubmission::class,
@@ -20,6 +39,16 @@ class ServiceProvider extends AddonServiceProvider
             IssueFormTimingCookie::class,
         ],
     ];
+
+    public function register()
+    {
+        parent::register();
+
+        $this->app->bind(Antispam::class, fn ($app) => new Antispam(
+            array_map(fn (string $rule) => $app->make($rule), self::RULES),
+            $app['request']
+        ));
+    }
 
     protected function bootConfig(): self
     {

@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Pecotamic\Antispam\Http\Middleware\IssueFormTimingCookie;
+use Pecotamic\Antispam\TimingCookie;
 use Tests\TestCase;
 
 class IssueContactFormTimingCookieTest extends TestCase
@@ -22,28 +23,25 @@ class IssueContactFormTimingCookieTest extends TestCase
 
         $this->assertNull($withoutForm->headers->getCookies()[0] ?? null);
         $this->assertSame(
-            config('pecotamic.antispam.cookie.name'),
+            app(TimingCookie::class)->name(),
             $withForm->headers->getCookies()[0]->getName()
         );
     }
 
-    public function test_it_rejects_missing_invalid_and_too_fresh_tokens(): void
+    public function test_it_reads_back_the_age_of_a_token_it_issued(): void
     {
-        $timing = app(IssueFormTimingCookie::class);
-        $this->assertFalse($timing->isPlausible(null));
-        $this->assertFalse($timing->isPlausible('invalid'));
-        $this->assertFalse($timing->isPlausible(Crypt::encryptString((string) now()->timestamp)));
+        $cookie = app(TimingCookie::class);
+
+        $this->assertNull($cookie->age(null));
+        $this->assertNull($cookie->age('invalid'));
+        $this->assertSame(0, $cookie->age(Crypt::encryptString((string) now()->timestamp)));
+        $this->assertSame(5, $cookie->age(Crypt::encryptString((string) now()->subSeconds(5)->timestamp)));
     }
 
-    public function test_it_accepts_a_token_after_five_seconds(): void
+    public function test_the_timing_rule_rejects_too_fresh_and_expired_tokens(): void
     {
-        $token = Crypt::encryptString((string) now()->subSeconds(5)->timestamp);
-        $this->assertTrue(app(IssueFormTimingCookie::class)->isPlausible($token));
-    }
-
-    public function test_it_rejects_an_expired_token(): void
-    {
-        $token = Crypt::encryptString((string) now()->subHours(3)->timestamp);
-        $this->assertFalse(app(IssueFormTimingCookie::class)->isPlausible($token));
+        $this->assertTrue($this->antispam(0)->rejects($this->submission()));
+        $this->assertTrue($this->antispam(3 * 3600)->rejects($this->submission()));
+        $this->assertFalse($this->antispam(5)->rejects($this->submission()));
     }
 }
