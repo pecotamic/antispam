@@ -18,3 +18,4 @@
 
 *.js   text eol=lf
 *.php  text eol=lf
+/composer.lock      export-ignore
