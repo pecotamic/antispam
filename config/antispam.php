@@ -39,7 +39,16 @@ return [
     |
     | Each rule contributes its "weight" to the score when it objects. A weight
     | of 0 switches the rule off entirely. The remaining keys configure the
-    | individual rule; "except" lists field handles a rule should skip.
+    | individual rule.
+    |
+    | Which fields a content rule examines follows from the form blueprint, so
+    | it needs no configuring: a field declared as a telephone number, an email
+    | address or a URL is skipped by the rules that judge written language,
+    | because it is not written language. A field the blueprint does not
+    | describe is examined — the conservative way round.
+    |
+    | "except" remains for the rest: field handles a rule should skip whatever
+    | the blueprint says about them.
     |
     */
 

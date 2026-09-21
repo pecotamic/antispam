@@ -2,6 +2,7 @@
 
 namespace Pecotamic\Antispam\Rules;
 
+use Pecotamic\Antispam\FieldKind;
 /**
  * Flags characters from writing systems the site does not expect.
  *
@@ -18,6 +19,16 @@ class Script extends FieldRule
     public function handle(): string
     {
         return 'script';
+    }
+
+    /**
+     * Applied to anything a person typed, addresses and URLs included: a
+     * cyrillic character in an email address is as telling as one in a
+     * message. Only fixed options are skipped, which no one typed.
+     */
+    protected function skips(): array
+    {
+        return [FieldKind::Other];
     }
 
     protected function inspect(string $field, string $value): ?string

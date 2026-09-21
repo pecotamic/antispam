@@ -9,6 +9,7 @@ use Pecotamic\Antispam\Antispam;
 use Pecotamic\Antispam\ServiceProvider;
 use Pecotamic\Antispam\TimingCookie;
 use Statamic\Contracts\Forms\Form;
+use Statamic\Facades\Blueprint;
 use Statamic\Contracts\Forms\Submission;
 use Statamic\Testing\AddonTestCase;
 
@@ -59,10 +60,16 @@ abstract class TestCase extends AddonTestCase
         return $this->app->make(Antispam::class);
     }
 
-    protected function submission(array $data = [], string $form = 'contact'): Submission
+    /**
+     * @param array<string, mixed> $data submitted values
+     * @param array<string, array<string, mixed>> $fields blueprint field configs,
+     *        keyed by handle — what the content rules classify fields by
+     */
+    protected function submission(array $data = [], string $form = 'contact', array $fields = []): Submission
     {
         $handle = Mockery::mock(Form::class);
         $handle->shouldReceive('handle')->andReturn($form);
+        $handle->shouldReceive('blueprint')->andReturn(Blueprint::makeFromFields($fields));
 
         $submission = Mockery::mock(Submission::class);
         $submission->shouldReceive('form')->andReturn($handle);

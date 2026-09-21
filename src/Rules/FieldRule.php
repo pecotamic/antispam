@@ -3,6 +3,7 @@
 namespace Pecotamic\Antispam\Rules;
 
 use Pecotamic\Antispam\Candidate;
+use Pecotamic\Antispam\FieldKind;
 
 /**
  * Base for rules that judge each submitted value on its own rather than the
@@ -15,16 +16,38 @@ abstract class FieldRule extends Rule
      */
     abstract protected function inspect(string $field, string $value): ?string;
 
+    /**
+     * Field kinds this rule has no business judging.
+     *
+     * Taken from the blueprint, so a telephone or URL field is skipped because
+     * the form declares it as one — no list of field names to maintain per
+     * site, and nothing to keep in step when a form gains a field.
+     *
+     * @return array<FieldKind>
+     */
+    protected function skips(): array
+    {
+        return [];
+    }
+
     public function detects(Candidate $candidate): ?string
     {
         $except = (array) $this->option('except', []);
 
+        $skips = $this->skips();
+
         foreach ($candidate->values() as $field => $value) {
+            $field = (string) $field;
+
             if (in_array($field, $except, true)) {
                 continue;
             }
 
-            if ($reason = $this->inspect((string) $field, (string) $value)) {
+            if (in_array($candidate->kindOf($field), $skips, true)) {
+                continue;
+            }
+
+            if ($reason = $this->inspect($field, (string) $value)) {
                 return $reason;
             }
         }

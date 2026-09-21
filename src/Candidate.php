@@ -11,10 +11,22 @@ use Statamic\Contracts\Forms\Submission;
  */
 class Candidate
 {
+    private ?FormFields $fields = null;
+
     public function __construct(
         public readonly Submission $submission,
         public readonly Request $request,
     ) {
+    }
+
+    /**
+     * What the form's blueprint says this field holds.
+     */
+    public function kindOf(string $field): FieldKind
+    {
+        $this->fields ??= FormFields::of($this->submission->form());
+
+        return $this->fields->kindOf($field);
     }
 
     public function formHandle(): string

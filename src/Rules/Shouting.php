@@ -2,6 +2,7 @@
 
 namespace Pecotamic\Antispam\Rules;
 
+use Pecotamic\Antispam\FieldKind;
 /**
  * Flags values written predominantly in capitals.
  *
@@ -14,6 +15,15 @@ class Shouting extends FieldRule
     public function handle(): string
     {
         return 'shouting';
+    }
+
+    /**
+     * Only prose is worth judging: an address, a URL or a telephone number is
+     * not written language and would be measured against the wrong yardstick.
+     */
+    protected function skips(): array
+    {
+        return [FieldKind::Email, FieldKind::Url, FieldKind::Numeric, FieldKind::Other];
     }
 
     protected function inspect(string $field, string $value): ?string

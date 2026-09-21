@@ -2,6 +2,7 @@
 
 namespace Pecotamic\Antispam\Rules;
 
+use Pecotamic\Antispam\FieldKind;
 /**
  * Counts links in the submitted values.
  *
@@ -21,6 +22,15 @@ class Links extends FieldRule
     public function handle(): string
     {
         return 'links';
+    }
+
+    /**
+     * A field the form declares as a URL is meant to hold one — that is the
+     * case the "except" list used to exist for, answered by the blueprint.
+     */
+    protected function skips(): array
+    {
+        return [FieldKind::Url, FieldKind::Numeric, FieldKind::Other];
     }
 
     protected function inspect(string $field, string $value): ?string

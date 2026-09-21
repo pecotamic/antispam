@@ -133,6 +133,36 @@ ones, each with the score and the reasons behind it. Those near misses are the
 material to set a threshold against. `'rejected'` (the default) logs only
 discarded submissions, `'none'` disables logging.
 
+## Which fields a rule examines
+
+This follows from the form blueprint rather than from configuration. A field
+declared as a telephone number, an email address or a URL is skipped by the
+rules that judge written language, because it is not written language:
+
+| Blueprint says | skipped by |
+|---|---|
+| `input_type: tel`, `number`, `date` | `gibberish`, `shouting`, `links` |
+| `input_type: email` | `gibberish`, `shouting` |
+| `input_type: url` | `links` |
+| `select`, `checkboxes`, `radio`, `assets`, … | every content rule |
+
+So a website field may hold a website, an address written in capitals is not
+mistaken for shouting, and a note typed into a telephone field is left alone —
+without a list of field handles that has to be kept in step with the forms
+across every site.
+
+Two rules deliberately ignore this. `script` is applied to everything a person
+typed, addresses and URLs included: a cyrillic character in an email address is
+as telling as one in a message. And `email` finds addresses by their shape, so
+it catches one pasted into a message body as readily as one in the address
+field.
+
+A field the blueprint does not describe is examined. Waving a field through
+because it is unknown would be the wrong way round.
+
+`except` remains for anything left over: field handles a rule should skip
+whatever the blueprint says about them.
+
 ## False positives
 
 The content rules are deliberately conservative, because a wrongly discarded
