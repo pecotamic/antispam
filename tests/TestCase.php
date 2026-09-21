@@ -25,6 +25,12 @@ abstract class TestCase extends AddonTestCase
         $app['config']->set('pecotamic.antispam.rules.patterns.expressions', [
             '/heard about (?:this|us) on .*\bradio\b/i',
         ]);
+
+        // The stateful rules remember across evaluations, which would make
+        // every other test depend on what ran before it. Their own tests switch
+        // them back on deliberately.
+        $app['config']->set('pecotamic.antispam.rules.rate_limit.weight', 0);
+        $app['config']->set('pecotamic.antispam.rules.duplicate.weight', 0);
     }
 
     /**

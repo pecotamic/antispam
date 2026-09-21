@@ -75,6 +75,52 @@ return [
         ],
 
         /*
+         | How many submissions one address may send within "window" seconds.
+         | The allowance is generous on purpose: mobile networks put many
+         | subscribers behind a single address. Needs the application's trusted
+         | proxy configuration to see real client addresses behind a proxy.
+         */
+        'rate_limit' => [
+            'weight' => 100,
+            'window' => 3600,
+            'maximum' => 5,
+        ],
+
+        /*
+         | Content that was already submitted within "window" seconds. Bots
+         | replay the same payload; visitors rarely send identical text twice,
+         | and where they do, the first submission already arrived.
+         */
+        'duplicate' => [
+            'weight' => 100,
+            'window' => 86400,
+        ],
+
+        /*
+         | Links in the submitted values. On a form that exists to arrange
+         | appointments, a link is close to a sure sign of spam. Forms that do
+         | ask for a website should list that field under "except" rather than
+         | raise "maximum", so the rule keeps its bite on the other fields.
+         */
+        'links' => [
+            'weight' => 100,
+            'maximum' => 0,
+            'except' => [],
+        ],
+
+        /*
+         | Characters from writing systems the site does not expect. "Common"
+         | covers digits, punctuation, whitespace and emoji, "Inherited" the
+         | combining marks — without those two, ordinary text would not pass.
+         | Add e.g. 'Greek' or 'Cyrillic' where such names are to be expected.
+         */
+        'script' => [
+            'weight' => 100,
+            'allowed' => ['Latin', 'Common', 'Inherited'],
+            'except' => [],
+        ],
+
+        /*
          | Values with too few vowels to be a word — keyboard-mash names and
          | the like. Values are transliterated to ASCII first, so umlauts count
          | as the vowels they are. Only values with at least "minimum_length"
@@ -98,6 +144,24 @@ return [
             'weight' => 100,
             'minimum_length' => 25,
             'maximum_capital_ratio' => 0.5,
+            'except' => [],
+        ],
+
+        /*
+         | Plausibility of submitted email addresses, recognised by their shape
+         | rather than by field name. "disposable_domains" adds to the list of
+         | throwaway providers bundled with the addon.
+         |
+         | "check_mx" is off by default: it puts a DNS round trip in the
+         | request path, and a resolver outage would make every address look
+         | invalid and take the form down with it. Enable it only where DNS is
+         | reliable, preferably at a weight below the threshold so a failed
+         | lookup alone cannot reject a submission.
+         */
+        'email' => [
+            'weight' => 100,
+            'check_mx' => false,
+            'disposable_domains' => [],
             'except' => [],
         ],
 

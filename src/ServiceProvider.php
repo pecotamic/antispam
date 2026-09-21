@@ -4,9 +4,14 @@ namespace Pecotamic\Antispam;
 
 use Pecotamic\Antispam\Http\Middleware\IssueFormTimingCookie;
 use Pecotamic\Antispam\Listeners\RejectSpamSubmission;
+use Pecotamic\Antispam\Rules\Duplicate;
+use Pecotamic\Antispam\Rules\Email;
 use Pecotamic\Antispam\Rules\Gibberish;
+use Pecotamic\Antispam\Rules\Links;
 use Pecotamic\Antispam\Rules\Patterns;
+use Pecotamic\Antispam\Rules\RateLimit;
 use Pecotamic\Antispam\Rules\Rule;
+use Pecotamic\Antispam\Rules\Script;
 use Pecotamic\Antispam\Rules\Shouting;
 use Pecotamic\Antispam\Rules\Timing;
 use Statamic\Events\FormSubmitted;
@@ -23,9 +28,14 @@ class ServiceProvider extends AddonServiceProvider
      */
     private const RULES = [
         Timing::class,
+        RateLimit::class,
+        Duplicate::class,
         Patterns::class,
+        Links::class,
+        Script::class,
         Gibberish::class,
         Shouting::class,
+        Email::class,
     ];
 
     protected $listen = [

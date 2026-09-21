@@ -24,9 +24,14 @@ Protection is active for every form out of the box. Everything below is tuning.
 | Rule | Objects when |
 |---|---|
 | `timing` | The submission arrives faster than `minimum_fill_time`, later than `maximum_fill_time`, or without the timing cookie. |
+| `rate_limit` | One address sends more than `maximum` submissions within `window` seconds. |
+| `duplicate` | The same content was already submitted within `window` seconds. |
 | `patterns` | A configured regular expression matches the submitted text. |
+| `links` | A value contains more links than `maximum` allows. |
+| `script` | A value contains characters outside the allowed writing systems. |
 | `gibberish` | A single word is long enough to be prose yet has too few vowels to be a word. |
 | `shouting` | A value of prose length is written predominantly in capitals. |
+| `email` | An address uses a throwaway mail domain, or has no MX record when `check_mx` is on. |
 
 The rule set ships with the addon and is not assembled per site. Sites adjust
 weights, thresholds and the individual options instead — there is no place
@@ -80,6 +85,18 @@ plain `[aeiou]` class a good share of German names would be rejected.
 
 `shouting` ignores anything below prose length for the same reason: short
 acronym-heavy values reach a high capital ratio without being shouted.
+
+`links` does not treat a bare "domain.tld" as a link, because that would match
+every email address passed through as a value. Forms that legitimately ask for
+a website belong under that rule's `except` rather than a raised `maximum`.
+
+`rate_limit` allows generously, because mobile networks put many subscribers
+behind one address. It needs the application's trusted proxy configuration to
+see real client addresses when the site sits behind a proxy or CDN.
+
+`email` keeps its MX lookup off by default: it puts a DNS round trip in the
+request path, and a resolver outage would make every address look invalid and
+take the form down with it.
 
 ## Static caching
 
