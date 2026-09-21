@@ -75,6 +75,26 @@ return [
         ],
 
         /*
+         | Evidence that a human interacted with the form: the frontend fetches
+         | a proof on the first mouse move, touch, key press or focus and sends
+         | it along in the field named here. Unlike the timing cookie — which
+         | any bare GET collects — a proof costs an extra round trip that a
+         | blind POST never makes.
+         |
+         | The weight sits below the threshold on purpose: forms still submit
+         | without JavaScript, and a visitor who has it disabled should not be
+         | turned away on that alone. Combined with any second indicator it is
+         | enough. Raise it to the threshold on sites whose forms require
+         | JavaScript anyway.
+         */
+        'interaction' => [
+            'weight' => 60,
+            'field' => 'ptas_proof',
+            'minimum_fill_time' => 3,
+            'maximum_fill_time' => 7200,
+        ],
+
+        /*
          | How many submissions one address may send within "window" seconds.
          | The allowance is generous on purpose: mobile networks put many
          | subscribers behind a single address. Needs the application's trusted

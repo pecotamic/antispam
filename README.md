@@ -23,6 +23,7 @@ Protection is active for every form out of the box. Everything below is tuning.
 
 | Rule | Objects when |
 |---|---|
+| `interaction` | No valid proof of human interaction accompanies the submission. |
 | `timing` | The submission arrives faster than `minimum_fill_time`, later than `maximum_fill_time`, or without the timing cookie. |
 | `rate_limit` | One address sends more than `maximum` submissions within `window` seconds. |
 | `duplicate` | The same content was already submitted within `window` seconds. |
@@ -36,6 +37,60 @@ Protection is active for every form out of the box. Everything below is tuning.
 The rule set ships with the addon and is not assembled per site. Sites adjust
 weights, thresholds and the individual options instead — there is no place
 where a project needs rule code of its own.
+
+## Frontend
+
+The package ships the form JavaScript alongside the PHP, so both sides are
+released, versioned and updated as one. A client signal the server does not
+enforce is decoration — and a client that strips a field the server relies on
+disables the protection silently. Keeping them in one package removes the gap
+where those two can drift apart.
+
+Composer already puts the files on disk. Point Vite at them:
+
+``` js
+// vite.config.mjs
+resolve: {
+    alias: { '@antispam': path.resolve(__dirname, 'vendor/pecotamic/antispam/resources/js') },
+},
+```
+
+``` ts
+// resources/js/components/contact-form.ts
+import '@antispam/auto'
+```
+
+Sites that need to deviate pass options instead of forking the file:
+
+``` ts
+import { setupContactForms } from '@antispam'
+
+setupContactForms({
+    selector: 'form.enquiry',
+    messages: { required: 'Please fill in.' },
+})
+```
+
+`selector`, `errorSelector`, `consentField`, `statusClasses`, `messages`,
+`eventName` and `proof` are all configurable; `proof: false` submits without an
+interaction proof.
+
+The JavaScript has no runtime dependencies, so nothing needs adding to a site's
+`package.json`. Note that `composer install` has to run before `npm run build`,
+or the alias will not resolve.
+
+### What the frontend does and does not do
+
+It validates for immediate feedback — required fields, address format, consent
+— and fetches the interaction proof. It runs no spam heuristic of its own: a
+heuristic maintained in two languages drifts apart, and a false positive in the
+browser blocks a real visitor behind an error message, while the server can
+weigh the same signal among others.
+
+It leaves the honeypot field in the payload. Stripping it client-side leaves
+the server nothing to detect, and a stripped honeypot is indistinguishable from
+an empty one — the failure is silent and total. There is a test for exactly
+this.
 
 ## Scoring
 
@@ -94,6 +149,12 @@ a website belong under that rule's `except` rather than a raised `maximum`.
 behind one address. It needs the application's trusted proxy configuration to
 see real client addresses when the site sits behind a proxy or CDN.
 
+`interaction` is weighted below the threshold by default. Forms still submit
+without JavaScript, and a visitor who has it disabled should not be turned away
+on that alone — but a missing proof together with any second indicator is
+enough. Raise it to the threshold on sites whose forms require JavaScript
+anyway.
+
 `email` keeps its MX lookup off by default: it puts a DNS round trip in the
 request path, and a resolver outage would make every address look invalid and
 take the form down with it.
@@ -109,6 +170,13 @@ If you use full static caching, exclude the pages containing protected forms
 from the cache (`statamic.static_caching.exclude`) so the cookie can be set, or
 set the `timing` rule's weight to `0`. The **half measure** strategy still
 executes PHP on each request and works without changes.
+
+## Tests
+
+``` bash
+composer install && vendor/bin/phpunit
+npm install && npm test
+```
 
 ## Live smoke test
 

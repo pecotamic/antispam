@@ -26,11 +26,14 @@ abstract class TestCase extends AddonTestCase
             '/heard about (?:this|us) on .*\bradio\b/i',
         ]);
 
-        // The stateful rules remember across evaluations, which would make
-        // every other test depend on what ran before it. Their own tests switch
+        // Rules that would otherwise colour every score: the stateful ones
+        // remember across evaluations and would make each test depend on what
+        // ran before it, and the interaction rule objects to every request
+        // that carries no proof, which is all of them. Their own tests switch
         // them back on deliberately.
         $app['config']->set('pecotamic.antispam.rules.rate_limit.weight', 0);
         $app['config']->set('pecotamic.antispam.rules.duplicate.weight', 0);
+        $app['config']->set('pecotamic.antispam.rules.interaction.weight', 0);
     }
 
     /**

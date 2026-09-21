@@ -1,0 +1,22 @@
+{
+    "name": "@pecotamic/antispam",
+    "version": "0.2.0",
+    "description": "Frontend companion to the pecotamic/antispam Statamic addon",
+    "type": "module",
+    "private": true,
+    "exports": {
+        ".": "./resources/js/index.ts",
+        "./auto": "./resources/js/auto.ts",
+        "./*": "./resources/js/*.ts"
+    },
+    "scripts": {
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "types": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "happy-dom": "^20.11.2",
+        "typescript": "^5.9.3",
+        "vitest": "^4.1.10"
+    }
+}

@@ -3,7 +3,6 @@
 namespace Pecotamic\Antispam;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
 use Symfony\Component\HttpFoundation\Cookie;
 
 /**
@@ -15,6 +14,10 @@ use Symfony\Component\HttpFoundation\Cookie;
  */
 class TimingCookie
 {
+    public function __construct(private readonly SignedTimestamp $timestamp)
+    {
+    }
+
     public function name(): string
     {
         return (string) config('pecotamic.antispam.cookie.name', '_ptas');
@@ -24,7 +27,7 @@ class TimingCookie
     {
         return cookie(
             $this->name(),
-            Crypt::encryptString((string) now()->timestamp),
+            $this->timestamp->issue(),
             $this->lifetime() / 60,
             '/',
             null,
@@ -41,15 +44,7 @@ class TimingCookie
      */
     public function age(?string $token): ?int
     {
-        if (!$token) {
-            return null;
-        }
-
-        try {
-            return now()->timestamp - (int) Crypt::decryptString($token);
-        } catch (\Throwable) {
-            return null;
-        }
+        return $this->timestamp->age($token);
     }
 
     /**
