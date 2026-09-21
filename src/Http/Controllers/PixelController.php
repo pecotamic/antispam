@@ -5,6 +5,7 @@ namespace Pecotamic\Antispam\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Pecotamic\Antispam\PixelCookie;
+use Pecotamic\Antispam\TagPresence;
 use Pecotamic\Antispam\TimingCookie;
 
 class PixelController
@@ -19,8 +20,17 @@ class PixelController
      * nothing and a blind POST everything — and unlike the JavaScript proof it
      * covers every visitor, JavaScript or not.
      */
-    public function __invoke(Request $request, PixelCookie $pixel, TimingCookie $timing): Response
-    {
+    public function __invoke(
+        Request $request,
+        PixelCookie $pixel,
+        TimingCookie $timing,
+        TagPresence $presence,
+    ): Response {
+        // Under full static caching the tag never renders, but the pixel it
+        // placed in the cached page is still fetched — so this is where the
+        // tag's presence gets recorded there.
+        $presence->record();
+
         // 1×1 transparent GIF.
         $response = response(
             base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'),

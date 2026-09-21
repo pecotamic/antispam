@@ -20,6 +20,7 @@ use Pecotamic\Antispam\Rules\Timing;
 use Pecotamic\Antispam\Tags\AntispamTag;
 use Statamic\Events\FormSubmitted;
 use Statamic\Providers\AddonServiceProvider;
+use Statamic\Statamic;
 
 class ServiceProvider extends AddonServiceProvider
 {
@@ -76,6 +77,16 @@ class ServiceProvider extends AddonServiceProvider
             array_map(fn (string $rule) => $app->make($rule), self::RULES),
             $app['request']
         ));
+    }
+
+    /**
+     * Statamic's install command runs on every composer install and update via
+     * the post-autoload-dump script, which makes this the one moment the addon
+     * can tell a human something directly.
+     */
+    public function bootAddon()
+    {
+        Statamic::afterInstalled(fn ($command) => app(InstallNotice::class)->printTo($command));
     }
 
     protected function bootConfig(): self

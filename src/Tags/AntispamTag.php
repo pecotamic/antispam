@@ -4,6 +4,7 @@ namespace Pecotamic\Antispam\Tags;
 
 use Pecotamic\Antispam\Assets;
 use Pecotamic\Antispam\PageState;
+use Pecotamic\Antispam\TagPresence;
 use Statamic\Tags\Tags;
 
 /**
@@ -36,6 +37,9 @@ class AntispamTag extends Tags
         if (!app(PageState::class)->claimRendering()) {
             return '';
         }
+
+        // Tells the proof rules they may expect evidence from now on.
+        app(TagPresence::class)->record();
 
         return $this->pixel().$this->script();
     }

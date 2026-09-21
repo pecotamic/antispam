@@ -1,6 +1,6 @@
 {
     "name": "@pecotamic/antispam",
-    "version": "0.3.0",
+    "version": "0.2.0",
     "description": "Development tooling for the pecotamic/antispam frontend. The frontend itself is served by the addon and needs no build.",
     "type": "module",
     "private": true,

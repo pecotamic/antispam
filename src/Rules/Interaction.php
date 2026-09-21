@@ -4,6 +4,7 @@ namespace Pecotamic\Antispam\Rules;
 
 use Pecotamic\Antispam\Candidate;
 use Pecotamic\Antispam\SignedTimestamp;
+use Pecotamic\Antispam\TagPresence;
 
 /**
  * Requires evidence that a human interacted with the form.
@@ -22,10 +23,11 @@ use Pecotamic\Antispam\SignedTimestamp;
  * away on that alone — but a missing proof combined with any second indicator
  * is enough.
  */
-class Interaction extends Rule
+class Interaction extends ProofRule
 {
-    public function __construct(private readonly SignedTimestamp $timestamp)
+    public function __construct(TagPresence $presence, private readonly SignedTimestamp $timestamp)
     {
+        parent::__construct($presence);
     }
 
     public function handle(): string
@@ -33,7 +35,7 @@ class Interaction extends Rule
         return 'interaction';
     }
 
-    public function detects(Candidate $candidate): ?string
+    protected function examine(Candidate $candidate): ?string
     {
         $field = (string) $this->option('field', 'ptas_proof');
         $age = $this->timestamp->age($candidate->request->input($field));

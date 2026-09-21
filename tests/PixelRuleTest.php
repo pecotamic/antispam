@@ -11,6 +11,15 @@ use Tests\TestCase;
 
 class PixelRuleTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // These tests are about a site that has the tag in its templates.
+        // Without that, the proof rules stay quiet by design.
+        app(\Pecotamic\Antispam\TagPresence::class)->record();
+    }
+
     public function test_the_endpoint_returns_an_image_and_leaves_a_cookie(): void
     {
         $response = $this->get('/!/pecotamic-antispam/p.png');
@@ -48,7 +57,7 @@ class PixelRuleTest extends TestCase
         );
 
         $response = app(\Pecotamic\Antispam\Http\Controllers\PixelController::class)(
-            $request, app(PixelCookie::class), $timing
+            $request, app(PixelCookie::class), $timing, app(\Pecotamic\Antispam\TagPresence::class)
         );
 
         $names = collect($response->headers->getCookies())->map->getName();

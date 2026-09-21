@@ -4,6 +4,7 @@ namespace Pecotamic\Antispam\Rules;
 
 use Pecotamic\Antispam\Candidate;
 use Pecotamic\Antispam\PixelCookie;
+use Pecotamic\Antispam\TagPresence;
 
 /**
  * Requires that the form page was actually loaded, subresources and all.
@@ -18,10 +19,11 @@ use Pecotamic\Antispam\PixelCookie;
  * missing image. Together with a missing interaction proof it is enough, and
  * either signal on its own lets a genuine visitor through.
  */
-class Pixel extends Rule
+class Pixel extends ProofRule
 {
-    public function __construct(private readonly PixelCookie $cookie)
+    public function __construct(TagPresence $presence, private readonly PixelCookie $cookie)
     {
+        parent::__construct($presence);
     }
 
     public function handle(): string
@@ -29,7 +31,7 @@ class Pixel extends Rule
         return 'pixel';
     }
 
-    public function detects(Candidate $candidate): ?string
+    protected function examine(Candidate $candidate): ?string
     {
         $age = $this->cookie->age($candidate->request->cookie($this->cookie->name()));
 

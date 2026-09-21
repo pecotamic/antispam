@@ -92,6 +92,18 @@ the server nothing to detect, and a stripped honeypot is indistinguishable from
 an empty one — the failure is silent and total. There is a test for exactly
 this.
 
+### Without the tag
+
+The proof rules ask for evidence only the tag produces, so on a site that has
+not added it they stay quiet rather than reject everything. They switch
+themselves on once the tag has been seen — rendered, or its pixel fetched.
+
+This is not a convenience. Weighted at 60 each, a missing pixel and a missing
+interaction proof clear the threshold together, so without this a `composer
+update` alone would swallow every enquiry on a site whose templates had not
+been touched yet — silently, because the visitor is shown a success message
+either way. The addon also says so after an install or update.
+
 ### The two proofs
 
 `pixel` and `interaction` cover each other, which is why both are weighted
