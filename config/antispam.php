@@ -75,6 +75,27 @@ return [
         ],
 
         /*
+         | Evidence that the form page was really loaded: the {{ antispam }}
+         | tag renders a 1x1 image whose request leaves a cookie behind. Most
+         | form spam is a blind POST that never fetches anything from the page,
+         | so its absence says a great deal — and unlike the interaction proof
+         | this covers every visitor, JavaScript or not.
+         |
+         | That request also reaches PHP when the page itself came from a full
+         | static cache, which is the one case the timing middleware never sees.
+         |
+         | The weight sits below the threshold because ad blockers occasionally
+         | swallow pixel-shaped requests, and no visitor should be turned away
+         | over a single missing image. Together with a missing interaction
+         | proof it is enough; either signal alone lets a visitor through.
+         */
+        'pixel' => [
+            'weight' => 60,
+            'cookie' => '_ptap',
+            'maximum_age' => 7200,
+        ],
+
+        /*
          | Evidence that a human interacted with the form: the frontend fetches
          | a proof on the first mouse move, touch, key press or focus and sends
          | it along in the field named here. Unlike the timing cookie — which

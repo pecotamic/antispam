@@ -3,6 +3,7 @@
 namespace Pecotamic\Antispam;
 
 use Pecotamic\Antispam\Http\Middleware\IssueFormTimingCookie;
+use Pecotamic\Antispam\PageState;
 use Pecotamic\Antispam\Listeners\RejectSpamSubmission;
 use Pecotamic\Antispam\Rules\Duplicate;
 use Pecotamic\Antispam\Rules\Email;
@@ -10,11 +11,13 @@ use Pecotamic\Antispam\Rules\Gibberish;
 use Pecotamic\Antispam\Rules\Interaction;
 use Pecotamic\Antispam\Rules\Links;
 use Pecotamic\Antispam\Rules\Patterns;
+use Pecotamic\Antispam\Rules\Pixel;
 use Pecotamic\Antispam\Rules\RateLimit;
 use Pecotamic\Antispam\Rules\Rule;
 use Pecotamic\Antispam\Rules\Script;
 use Pecotamic\Antispam\Rules\Shouting;
 use Pecotamic\Antispam\Rules\Timing;
+use Pecotamic\Antispam\Tags\AntispamTag;
 use Statamic\Events\FormSubmitted;
 use Statamic\Providers\AddonServiceProvider;
 
@@ -29,6 +32,7 @@ class ServiceProvider extends AddonServiceProvider
      */
     private const RULES = [
         Timing::class,
+        Pixel::class,
         Interaction::class,
         RateLimit::class,
         Duplicate::class,
@@ -38,6 +42,10 @@ class ServiceProvider extends AddonServiceProvider
         Gibberish::class,
         Shouting::class,
         Email::class,
+    ];
+
+    protected $tags = [
+        AntispamTag::class,
     ];
 
     protected $routes = [
@@ -59,6 +67,10 @@ class ServiceProvider extends AddonServiceProvider
     public function register()
     {
         parent::register();
+
+        // Scoped rather than singleton so a long-running worker starts each
+        // request with a clean page.
+        $this->app->scoped(PageState::class);
 
         $this->app->bind(Antispam::class, fn ($app) => new Antispam(
             array_map(fn (string $rule) => $app->make($rule), self::RULES),

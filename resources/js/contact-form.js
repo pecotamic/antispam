@@ -1,34 +1,26 @@
-import { buildRules, defaultMessages, Messages, Validator } from './validator'
+import { buildRules, defaultMessages, Validator } from './validator.js'
 
-export interface Options {
-    /** Forms to attach to. */
-    selector?: string
-    /** Error container within a field's wrapper. */
-    errorSelector?: string
-    /** Name of the consent checkbox group, or null when the form has none. */
-    consentField?: string | null
-    /** Classes toggled on the form's first child to signal the outcome. */
-    statusClasses?: { success: string; failure: string }
-    /** Validation messages, for sites that are not German. */
-    messages?: Partial<Messages>
-    /** Interaction proof, or false to submit without one. */
-    proof?: { endpoint: string; field: string } | false
-    /**
-     * Event dispatched on document after an AJAX submission, carrying
-     * { action, id, name }. Conversion tracking listens for this, so the name
-     * is part of the contract with the sites that embed the package.
-     */
-    eventName?: string
-}
+/**
+ * @typedef {object} Options
+ * @property {string} [selector] Forms to attach to.
+ * @property {string} [errorSelector] Error container within a field's wrapper.
+ * @property {string|null} [consentField] Consent checkbox group, null when none.
+ * @property {{success: string, failure: string}} [statusClasses]
+ * @property {Partial<import('./validator.js').Messages>} [messages]
+ * @property {{endpoint: string, field: string}|false} [proof]
+ * @property {string} [eventName] Event conversion tracking listens for.
+ */
 
+/** @type {Required<Options>} */
 const defaults = {
     selector: 'form.contact-form',
     errorSelector: '.field-error',
     consentField: 'consent[]',
     statusClasses: { success: 'did-succeed', failure: 'did-fail' },
+    messages: defaultMessages,
     proof: { endpoint: '/!/pecotamic-antispam/proof', field: 'ptas_proof' },
     eventName: 'submit-form',
-} as const
+}
 
 /**
  * Fetches an interaction proof once, on the first sign of a human, and carries
@@ -40,8 +32,11 @@ const defaults = {
  * A failed request is swallowed: the proof is one indicator among several and
  * weighted below the rejection threshold, so a hiccup costs a little spam
  * protection rather than the visitor's enquiry.
+ *
+ * @param {HTMLFormElement} form
+ * @param {{endpoint: string, field: string}} config
  */
-const attachProof = (form: HTMLFormElement, { endpoint, field }: { endpoint: string; field: string }) => {
+const attachProof = (form, { endpoint, field }) => {
     const input = document.createElement('input')
     input.type = 'hidden'
     input.name = field
@@ -58,7 +53,7 @@ const attachProof = (form: HTMLFormElement, { endpoint, field }: { endpoint: str
 
     // { once: true } would only be once *per event type*, and a visitor who
     // moves, focuses and types would fetch a proof three times over.
-    const events = ['mousemove', 'touchstart', 'keydown', 'focusin'] as const
+    const events = ['mousemove', 'touchstart', 'keydown', 'focusin']
 
     const fetchOnce = () => {
         events.forEach(event => form.removeEventListener(event, fetchOnce))
@@ -68,23 +63,30 @@ const attachProof = (form: HTMLFormElement, { endpoint, field }: { endpoint: str
     events.forEach(event => form.addEventListener(event, fetchOnce, { passive: true }))
 }
 
-export const setupContactForms = (options: Options = {}) => {
+/**
+ * @param {Options} [options]
+ */
+export const setupContactForms = (options = {}) => {
     const config = { ...defaults, ...options }
-    const messages: Messages = { ...defaultMessages, ...options.messages }
+    const messages = { ...defaultMessages, ...options.messages }
 
-    document.querySelectorAll<HTMLFormElement>(config.selector).forEach(form => {
+    document.querySelectorAll(config.selector).forEach(form => {
+        if (!(form instanceof HTMLFormElement)) return
+
         const validator = new Validator(buildRules(form), messages)
 
         if (config.proof) attachProof(form, config.proof)
 
-        const setStatus = (succeeded: boolean) => {
+        /** @param {boolean} succeeded */
+        const setStatus = succeeded => {
             const classes = form.querySelector(':scope > div')?.classList
             classes?.toggle(config.statusClasses.success, succeeded)
             classes?.toggle(config.statusClasses.failure, !succeeded)
             form.scrollIntoView()
         }
 
-        const showErrors = (errors: Record<string, string[]>) => {
+        /** @param {Record<string, string[]>} errors */
+        const showErrors = errors => {
             // Iterating the containers rather than the errors also clears
             // messages from fields that have since been filled in.
             form.querySelectorAll(config.errorSelector).forEach(container => {
@@ -96,9 +98,10 @@ export const setupContactForms = (options: Options = {}) => {
             })
         }
 
-        const setSubmitting = (submitting: boolean) => {
-            const button = form.querySelector<HTMLButtonElement>('[type="submit"]')
-            if (button) button.disabled = submitting
+        /** @param {boolean} submitting */
+        const setSubmitting = submitting => {
+            const button = form.querySelector('[type="submit"]')
+            if (button instanceof HTMLButtonElement) button.disabled = submitting
         }
 
         form.addEventListener('submit', async event => {
@@ -143,4 +146,15 @@ export const setupContactForms = (options: Options = {}) => {
             }))
         })
     })
+}
+
+/**
+ * Configuration is rendered by the Antlers tag, so the field name and endpoint
+ * come from the same PHP config the server checks against — there is no second
+ * copy of them here to drift out of step.
+ */
+const script = document.querySelector('script[data-pecotamic-antispam]')
+
+if (script instanceof HTMLElement) {
+    setupContactForms(JSON.parse(script.dataset.pecotamicAntispam || '{}'))
 }

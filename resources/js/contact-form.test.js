@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { setupContactForms } from './contact-form'
+import { setupContactForms } from './contact-form.js'
 
 /**
  * Mirrors the real Statamic render: inputs nested in a label, the error
@@ -37,15 +37,14 @@ const FIXTURE = `
     </form>
 `
 
-const form = () => document.querySelector<HTMLFormElement>('form.contact-form')!
-const field = (name: string) => form().querySelector<HTMLInputElement>(`[name="${name}"]`)!
-const errorOf = (name: string) =>
-    field(name).closest('.field')!.querySelector('.field-error')!.textContent
+const form = () => document.querySelector('form.contact-form')
+const field = name => form().querySelector(`[name="${name}"]`)
+const errorOf = name => field(name).closest('.field').querySelector('.field-error').textContent
 
 const fillInValidly = () => {
     field('email').value = 'anna@example.de'
     field('message').value = 'Ich hätte gerne einen Termin.'
-    form().querySelector<HTMLInputElement>('[type="checkbox"]')!.checked = true
+    form().querySelector('[type="checkbox"]').checked = true
 }
 
 const submit = async () => {
@@ -53,14 +52,14 @@ const submit = async () => {
     await new Promise(resolve => setTimeout(resolve))
 }
 
-const sentBody = (): FormData => (fetchMock.mock.calls.at(-1)![1] as RequestInit).body as FormData
+const sentBody = () => fetchMock.mock.calls.at(-1)[1].body
 
-let fetchMock: ReturnType<typeof vi.fn>
+let fetchMock
 
 beforeEach(() => {
     document.body.innerHTML = FIXTURE
 
-    fetchMock = vi.fn(async (url: string) =>
+    fetchMock = vi.fn(async url =>
         url.includes('/proof')
             ? { ok: true, json: async () => ({ proof: 'signed-proof' }) }
             : { ok: true, json: async () => ({ success: true }) }
@@ -108,7 +107,7 @@ describe('validation', () => {
     it('reports an unticked consent box despite the hidden input', async () => {
         setupContactForms({ proof: false })
         fillInValidly()
-        form().querySelector<HTMLInputElement>('[type="checkbox"]')!.checked = false
+        form().querySelector('[type="checkbox"]').checked = false
         await submit()
 
         expect(fetchMock).not.toHaveBeenCalled()
@@ -195,7 +194,7 @@ describe('interaction proof', () => {
      * cost a little protection, never the visitor's enquiry.
      */
     it('still submits when the proof request fails', async () => {
-        fetchMock.mockImplementation(async (url: string) => {
+        fetchMock.mockImplementation(async url => {
             if (`${url}`.includes('/proof')) throw new Error('offline')
             return { ok: true, json: async () => ({ success: true }) }
         })
@@ -234,6 +233,6 @@ describe('outcome', () => {
         fillInValidly()
         await submit()
 
-        expect(form().querySelector(':scope > div')!.classList.contains('did-fail')).toBe(true)
+        expect(form().querySelector(':scope > div').classList.contains('did-fail')).toBe(true)
     })
 })

@@ -17,12 +17,24 @@ composer require pecotamic/antispam
 php artisan vendor:publish --tag=pecotamic-antispam-config
 ```
 
+Then add the tag once inside each form template, next to the form itself:
+
+``` antlers
+{{ antispam }}
+```
+
+That is the whole integration. The tag renders the tracking pixel, the frontend
+module and the configuration the frontend runs on — no Vite alias, no npm
+dependency, no build step, nothing to publish into the site's public
+directory.
+
 Protection is active for every form out of the box. Everything below is tuning.
 
 ## Rules
 
 | Rule | Objects when |
 |---|---|
+| `pixel` | The form page was never loaded with its subresources. |
 | `interaction` | No valid proof of human interaction accompanies the submission. |
 | `timing` | The submission arrives faster than `minimum_fill_time`, later than `maximum_fill_time`, or without the timing cookie. |
 | `rate_limit` | One address sends more than `maximum` submissions within `window` seconds. |
@@ -40,44 +52,32 @@ where a project needs rule code of its own.
 
 ## Frontend
 
-The package ships the form JavaScript alongside the PHP, so both sides are
-released, versioned and updated as one. A client signal the server does not
-enforce is decoration — and a client that strips a field the server relies on
-disables the protection silently. Keeping them in one package removes the gap
-where those two can drift apart.
+The package ships the form JavaScript alongside the PHP and serves it itself,
+from a fingerprinted route:
 
-Composer already puts the files on disk. Point Vite at them:
-
-``` js
-// vite.config.mjs
-resolve: {
-    alias: { '@antispam': path.resolve(__dirname, 'vendor/pecotamic/antispam/resources/js') },
-},
+```
+/!/pecotamic-antispam/js/<fingerprint>/contact-form.js
 ```
 
-``` ts
-// resources/js/components/contact-form.ts
-import '@antispam/auto'
+Two things follow from that. Client and server are released as one version, so
+a signal the client sends and a signal the server checks cannot drift apart.
+And a fix to the frontend reaches a site through `composer update` alone —
+without a Vite build that has to succeed on every site first.
+
+The files are plain JavaScript with JSDoc types, checked by `tsc --checkJs`.
+There is no build, so the file served is the file in the repository, and no
+compiled artefact can go stale against its source.
+
+Sites that need to deviate pass parameters at the tag rather than forking
+anything:
+
+``` antlers
+{{ antispam selector="form.enquiry" event_name="sent" }}
 ```
 
-Sites that need to deviate pass options instead of forking the file:
-
-``` ts
-import { setupContactForms } from '@antispam'
-
-setupContactForms({
-    selector: 'form.enquiry',
-    messages: { required: 'Please fill in.' },
-})
-```
-
-`selector`, `errorSelector`, `consentField`, `statusClasses`, `messages`,
-`eventName` and `proof` are all configurable; `proof: false` submits without an
-interaction proof.
-
-The JavaScript has no runtime dependencies, so nothing needs adding to a site's
-`package.json`. Note that `composer install` has to run before `npm run build`,
-or the alias will not resolve.
+`selector`, `error_selector`, `consent_field` and `event_name` are accepted.
+Everything else — above all the proof field name and endpoint — comes from the
+PHP config, so it exists once rather than once per side.
 
 ### What the frontend does and does not do
 
@@ -91,6 +91,14 @@ It leaves the honeypot field in the payload. Stripping it client-side leaves
 the server nothing to detect, and a stripped honeypot is indistinguishable from
 an empty one — the failure is silent and total. There is a test for exactly
 this.
+
+### The two proofs
+
+`pixel` and `interaction` cover each other, which is why both are weighted
+below the threshold. A visitor without JavaScript has the pixel; a visitor
+whose ad blocker swallowed the pixel has the interaction proof. Either alone
+gets them through. A blind POST has neither and exceeds the threshold on that
+count alone.
 
 ## Scoring
 
@@ -161,15 +169,17 @@ take the form down with it.
 
 ## Static caching
 
-The timing cookie is issued by middleware while the page is rendered. With
-Statamic's **full measure** static caching, pages are served straight from disk
-without booting PHP, so the middleware never runs and the cookie is never set —
-as a result **every** submission is rejected as if it had no cookie.
+With Statamic's **full measure** static caching, pages are served straight from
+disk without booting PHP, so the middleware that issues the timing cookie never
+runs. The pixel request closes that gap: it reaches PHP whatever the page did,
+and seeds the timing cookie when there is none — so `{{ antispam }}` is what
+makes full static caching safe here.
 
-If you use full static caching, exclude the pages containing protected forms
-from the cache (`statamic.static_caching.exclude`) so the cookie can be set, or
-set the `timing` rule's weight to `0`. The **half measure** strategy still
-executes PHP on each request and works without changes.
+Without the tag on a full-measure site, every submission is rejected as if it
+had no cookie. Either add the tag, exclude the form pages from the cache
+(`statamic.static_caching.exclude`), or set the `timing` rule's weight to `0`.
+The **half measure** strategy executes PHP on each request and works either
+way.
 
 ## Tests
 

@@ -28,12 +28,13 @@ abstract class TestCase extends AddonTestCase
 
         // Rules that would otherwise colour every score: the stateful ones
         // remember across evaluations and would make each test depend on what
-        // ran before it, and the interaction rule objects to every request
-        // that carries no proof, which is all of them. Their own tests switch
-        // them back on deliberately.
+        // ran before it, while the interaction and pixel rules object to every
+        // request that carries no proof and no pixel cookie, which is all of
+        // them. Their own tests switch them back on deliberately.
         $app['config']->set('pecotamic.antispam.rules.rate_limit.weight', 0);
         $app['config']->set('pecotamic.antispam.rules.duplicate.weight', 0);
         $app['config']->set('pecotamic.antispam.rules.interaction.weight', 0);
+        $app['config']->set('pecotamic.antispam.rules.pixel.weight', 0);
     }
 
     /**
