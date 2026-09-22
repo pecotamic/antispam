@@ -20,8 +20,9 @@ That is all. Every Statamic form on the site is protected from that moment,
 with no template to edit and nothing to publish.
 
 The addon places what the browser side needs — a tracking pixel and a small
-frontend module — on every page that carries a form, just before `</body>`.
-Publish the config only if you want to change something:
+frontend module — just before `</body>`, on pages carrying a protected form.
+Pages without one are passed through untouched. Publish the config only if you
+want to change something:
 
 ``` bash
 php artisan vendor:publish --tag=pecotamic-antispam-config
@@ -68,6 +69,39 @@ The files are plain JavaScript with JSDoc types, checked by `tsc --checkJs`.
 There is no build, so the file served is the file in the repository, and no
 compiled artefact can go stale against its source.
 
+### How a form is recognised
+
+By its action. Every form Statamic renders posts to `/!/forms/<handle>`, and
+that handle is what the addon matches against the `forms` configuration — both
+to decide which pages to add the markup to, and to build the selector the
+frontend attaches by.
+
+Nothing else is assumed. No class name, no id, no markup convention: a form
+built with `{{ form:create }}` is recognised whatever your template looks like.
+
+The flip side is that a form which does not post to `/!/forms/…` — one posting
+to a route of your own, or one whose action is set by JavaScript after the page
+loads — is not a Statamic form as far as the addon is concerned, and is left
+alone. Such a form is not protected, and its submissions never reach the rules.
+
+### What it touches, and what it does not
+
+Only pages carrying a form listed under `forms` are modified. A page whose only
+form is left out of that list — a calculator, a search, a form handled
+elsewhere — comes through exactly as your templates wrote it.
+
+Prose is not a form: an article that merely writes about `/!/forms/contact`
+does not make its page a form page.
+
+To keep the addon out of your markup altogether:
+
+``` php
+'inject' => false,
+```
+
+The rules that need no markup keep working; `pixel` and `interaction` stay
+quiet unless you place the tag yourself.
+
 ### Why the addon places the markup itself
 
 Leaving it to a tag would add an integration step, and one that is easy to get
@@ -88,9 +122,20 @@ it belongs:
 {{ antispam selector="form.enquiry" event_name="sent" }}
 ```
 
-`selector`, `error_selector`, `consent_field` and `event_name` are accepted.
-Everything else — above all the proof field name and endpoint — comes from the
-PHP config, so it exists once rather than once per side.
+`selector`, `error_selector`, `consent_field`, `event_name`, `success_class`
+and `failure_class` are accepted. Everything else — above all the proof field
+name and endpoint — comes from the PHP config, so it exists once rather than
+once per side.
+
+### Messages
+
+The messages shown beside a field are translations, rendered by the server in
+the site's locale. English and German ship with the addon; add a language or
+change the wording the way you would for any package:
+
+``` bash
+php artisan vendor:publish --tag=pecotamic-antispam-translations
+```
 
 ### Placing the markup yourself
 
@@ -131,6 +176,17 @@ Weighted at 60 each, a missing pixel and a missing interaction proof clear the
 threshold together, so without this a site upgrading while its pages sit in a
 full static cache built before the markup existed would swallow every enquiry —
 silently, since the visitor is shown a success message either way.
+
+### What a proof does and does not prove
+
+A proof says a browser asked for one, and that a plausible interval passed
+before the form arrived. It is not single-use: a bot could fetch one and reuse
+it. That is deliberate — the endpoint is open, so single-use would only force a
+bot to fetch one proof per submission rather than one per campaign, while
+costing a visitor whose first attempt failed validation their second.
+
+Volume is what `rate_limit` and `duplicate` are for. The proof's job is to make
+a blind POST — the overwhelming majority of form spam — fail.
 
 ### The two proofs
 

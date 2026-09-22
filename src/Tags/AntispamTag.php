@@ -31,6 +31,8 @@ class AntispamTag extends Tags
         'error_selector' => 'errorSelector',
         'consent_field' => 'consentField',
         'event_name' => 'eventName',
+        'success_class' => 'successClass',
+        'failure_class' => 'failureClass',
     ];
 
     public function index(): string
@@ -59,6 +61,15 @@ class AntispamTag extends Tags
         foreach (self::OVERRIDABLE as $param => $key) {
             if ($this->params->has($param)) {
                 $options[$key] = $this->params->get($param);
+            }
+        }
+
+        // The frontend takes the two status classes as one object; the tag
+        // takes them separately, because a tag parameter cannot be one.
+        foreach (['successClass' => 'success', 'failureClass' => 'failure'] as $from => $to) {
+            if (isset($options[$from])) {
+                $options['statusClasses'][$to] = $options[$from];
+                unset($options[$from]);
             }
         }
 

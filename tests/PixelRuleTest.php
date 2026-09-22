@@ -25,7 +25,7 @@ class PixelRuleTest extends TestCase
         $response = $this->get('/!/pecotamic-antispam/p.png');
 
         $response->assertOk();
-        $response->assertHeader('Content-Type', 'image/gif');
+        $response->assertHeader('Content-Type', 'image/png');
         $response->assertCookie(app(PixelCookie::class)->name());
     }
 

@@ -75,7 +75,8 @@ class ServiceProvider extends AddonServiceProvider
 
         $this->app->bind(Antispam::class, fn ($app) => new Antispam(
             array_map(fn (string $rule) => $app->make($rule), self::RULES),
-            $app['request']
+            $app['request'],
+            $app->make(ProtectedForms::class)
         ));
     }
 
@@ -86,7 +87,21 @@ class ServiceProvider extends AddonServiceProvider
      */
     public function bootAddon()
     {
+        $this->bootTranslations();
+
         Statamic::afterInstalled(fn ($command) => app(InstallNotice::class)->printTo($command));
+    }
+
+    /**
+     * Registered explicitly rather than relying on the addon slug Statamic
+     * derives, so the namespace the code translates against is the namespace
+     * that is actually loaded.
+     */
+    protected function bootTranslations(): self
+    {
+        $this->loadTranslationsFrom(__DIR__.'/../lang', 'pecotamic-antispam');
+
+        return $this;
     }
 
     protected function bootConfig(): self
@@ -96,6 +111,10 @@ class ServiceProvider extends AddonServiceProvider
         $this->publishes([
             __DIR__.'/../config/antispam.php' => config_path('pecotamic/antispam.php'),
         ], 'pecotamic-antispam-config');
+
+        $this->publishes([
+            __DIR__.'/../lang' => lang_path('vendor/pecotamic-antispam'),
+        ], 'pecotamic-antispam-translations');
 
         return $this;
     }

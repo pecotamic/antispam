@@ -31,12 +31,19 @@ class PixelController
         // cache built earlier.
         $presence->record();
 
-        // 1×1 transparent GIF.
+        // A 1×1 fully transparent PNG, 68 bytes. The format matches the
+        // route's extension: serving a GIF from a .png URL works — the header
+        // decides — but proxies and caches that key on the extension have no
+        // business being surprised by it.
+        //
+        // no-store is what makes this work at all: a cached image is fetched
+        // once and never again, and it is the fetch, not the picture, that the
+        // protection is after.
         $response = response(
-            base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'),
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAbitOmMAAAAASUVORK5CYII='),
             200,
             [
-                'Content-Type' => 'image/gif',
+                'Content-Type' => 'image/png',
                 'Cache-Control' => 'no-store, private',
             ]
         );

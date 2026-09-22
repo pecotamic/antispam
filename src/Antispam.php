@@ -14,6 +14,7 @@ class Antispam
     public function __construct(
         private readonly iterable $rules,
         private readonly Request $request,
+        private readonly ProtectedForms $forms,
     ) {
     }
 
@@ -27,7 +28,7 @@ class Antispam
         $candidate = new Candidate($submission, $this->request);
         $threshold = (int) config('pecotamic.antispam.threshold', 100);
 
-        if (!$this->protects($candidate->formHandle())) {
+        if (!$this->forms->includes($candidate->formHandle())) {
             return new Assessment([], 0, $threshold);
         }
 
@@ -46,12 +47,5 @@ class Antispam
         }
 
         return new Assessment($reasons, $score, $threshold);
-    }
-
-    private function protects(string $handle): bool
-    {
-        $forms = config('pecotamic.antispam.forms', ['*']);
-
-        return in_array('*', $forms, true) || in_array($handle, $forms, true);
     }
 }

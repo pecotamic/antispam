@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Pecotamic\Antispam\Markup;
 use Pecotamic\Antispam\PageState;
+use Pecotamic\Antispam\ProtectedForms;
 use Pecotamic\Antispam\TimingCookie;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -28,17 +29,17 @@ use Symfony\Component\HttpFoundation\Response;
  * already collects its scripts in a stack rendered inside <head>. Injecting
  * before </body> is correct by construction.
  *
- * Sites that want the markup elsewhere can turn injection off and use the
- * {{ antispam }} tag instead.
+ * Only pages carrying a form named in the "forms" configuration are touched;
+ * everything else is passed through untouched. Sites that want the markup
+ * elsewhere can turn injection off and use the {{ antispam }} tag instead.
  */
 class ProtectForms
 {
-    private const FORM_ACTION_FRAGMENT = '/!/forms/';
-
     public function __construct(
         private readonly TimingCookie $cookie,
         private readonly Markup $markup,
         private readonly PageState $state,
+        private readonly ProtectedForms $forms,
     ) {
     }
 
@@ -46,7 +47,7 @@ class ProtectForms
     {
         $response = $next($request);
 
-        if (!$request->isMethod('GET') || !$this->carriesForm($response)) {
+        if (!$request->isMethod('GET') || !$this->carriesProtectedForm($response)) {
             return $response;
         }
 
@@ -77,20 +78,27 @@ class ProtectForms
         );
     }
 
-    private function carriesForm(Response $response): bool
+    /**
+     * Only pages carrying a form the addon is responsible for are touched.
+     *
+     * A page whose only form is left out of the "forms" configuration is none
+     * of the addon's business, and its markup is left exactly as the site
+     * wrote it.
+     */
+    private function carriesProtectedForm(Response $response): bool
     {
         if (!$response->isSuccessful()) {
             return false;
         }
 
-        // str_contains on a non-HTML body would be both pointless and costly;
-        // a JSON API response can be large and will never carry a form action.
+        // Scanning a non-HTML body would be both pointless and costly; a JSON
+        // API response can be large and will never carry a form action.
         if (!str_contains((string) $response->headers->get('Content-Type'), 'text/html')) {
             return false;
         }
 
         $content = $response->getContent();
 
-        return is_string($content) && str_contains($content, self::FORM_ACTION_FRAGMENT);
+        return is_string($content) && $this->forms->appearIn($content);
     }
 }

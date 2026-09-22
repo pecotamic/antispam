@@ -1,5 +1,30 @@
 <?php
 
+/*
+|--------------------------------------------------------------------------
+| Pecotamic Antispam
+|--------------------------------------------------------------------------
+|
+| Publishing this file is optional. Without it the addon runs on the defaults
+| below and protects every form on the site.
+|
+| Once published, keep only what you actually change and delete the rest. The
+| addon merges this file into its own defaults key by key, so anything you
+| leave out is inherited — including rules added in later versions, which a
+| full copy of this file would silently keep at their old settings or miss
+| altogether.
+|
+| A typical published config is a few lines:
+|
+|     return [
+|         'forms' => ['contact'],
+|         'rules' => [
+|             'patterns' => ['expressions' => ['/…/i']],
+|         ],
+|     ];
+|
+*/
+
 return [
 
     /*
@@ -11,6 +36,16 @@ return [
     | '*' to protect every form. To protect only specific forms, replace it
     | with their handles, e.g. ['contact', 'newsletter'].
     |
+    | Forms are recognised by their action: everything Statamic renders posts
+    | to /!/forms/<handle>, and that handle is matched against this list. No
+    | class name or markup convention is assumed — but a form posting anywhere
+    | else is not a Statamic form as far as the addon is concerned, and is
+    | neither protected nor touched.
+    |
+    | This governs everything the addon does. A form left out is not judged,
+    | and pages carrying only such forms are passed through untouched — no
+    | markup is added to them.
+    |
     */
 
     'forms' => ['*'],
@@ -20,14 +55,18 @@ return [
     | Automatic markup
     |--------------------------------------------------------------------------
     |
-    | The addon places its tracking pixel and frontend module on every page
-    | that carries a Statamic form, just before </body>. That needs no change
-    | to your templates, and it is the only placement that is always correct:
-    | the pixel is an <img>, which in the <head> would end the head for the
-    | HTML parser and push everything after it into the body.
+    | The addon places its tracking pixel and frontend module just before
+    | </body>, on pages carrying one of the forms named above — and only those.
+    | Other pages are passed through exactly as your templates wrote them.
     |
-    | Turn this off only if you need the markup somewhere else — then place the
-    | {{ antispam }} tag yourself, inside the body.
+    | That needs no change to your templates, and it is the only placement that
+    | is always correct: the pixel is an <img>, which in the <head> would end
+    | the head for the HTML parser and push everything after it into the body.
+    |
+    | Set this to false to keep the addon out of your markup entirely. The
+    | pixel and interaction rules then have nothing to work with unless you
+    | place the {{ antispam }} tag yourself, inside the body; the addon says so
+    | after an install or update.
     |
     */
 

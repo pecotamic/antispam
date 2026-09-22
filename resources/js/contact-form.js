@@ -13,7 +13,9 @@ import { buildRules, defaultMessages, Validator } from './validator.js'
 
 /** @type {Required<Options>} */
 const defaults = {
-    selector: 'form.contact-form',
+    // Overwritten by the server with a selector derived from the protected
+    // form handles; this is only a fallback for direct use of the module.
+    selector: 'form[action*="/!/forms/"]',
     errorSelector: '.field-error',
     consentField: 'consent[]',
     statusClasses: { success: 'did-succeed', failure: 'did-fail' },
@@ -67,7 +69,13 @@ const attachProof = (form, { endpoint, field }) => {
  * @param {Options} [options]
  */
 export const setupContactForms = (options = {}) => {
-    const config = { ...defaults, ...options }
+    // Nested objects are merged key by key: overriding one status class or
+    // one message must not drop the others, which a flat spread would.
+    const config = {
+        ...defaults,
+        ...options,
+        statusClasses: { ...defaults.statusClasses, ...options.statusClasses },
+    }
     const messages = { ...defaultMessages, ...options.messages }
 
     document.querySelectorAll(config.selector).forEach(form => {
@@ -104,9 +112,19 @@ export const setupContactForms = (options = {}) => {
             if (button instanceof HTMLButtonElement) button.disabled = submitting
         }
 
+        // Whether this template has anywhere to put a message. Validating
+        // without somewhere to show the result would block the submit with no
+        // explanation — the visitor clicks Send and nothing happens. Where
+        // there is nowhere, the browser's own validation takes over: it both
+        // checks and reports, using the required and type attributes already
+        // in the markup.
+        const canReport = form.querySelectorAll(config.errorSelector).length > 0
+
         form.addEventListener('submit', async event => {
-            const errors = validator.validate(form, config.consentField ?? '')
-            const hasErrors = Object.keys(errors).length > 0
+            const errors = canReport ? validator.validate(form, config.consentField ?? '') : {}
+            const hasErrors = canReport
+                ? Object.keys(errors).length > 0
+                : !form.reportValidity()
 
             // The honeypot travels with the payload untouched. Stripping it
             // client-side would leave the server nothing to detect and silently

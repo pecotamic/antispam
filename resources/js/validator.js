@@ -11,11 +11,16 @@
 /** @typedef {Record<RuleName, string>} Messages */
 /** @typedef {Record<string, RuleName[]>} Rules */
 
-/** @type {Messages} */
+/**
+ * Fallback only. The server renders the translated messages into the page, so
+ * these are what a direct import of the module gets.
+ *
+ * @type {Messages}
+ */
 export const defaultMessages = {
-    required: 'Bitte ausfüllen.',
-    email: 'Bitte eine gültige E-Mail-Adresse eingeben.',
-    confirm: 'Bitte bestätigen.',
+    required: 'Please fill this in.',
+    email: 'Please enter a valid email address.',
+    confirm: 'Please confirm.',
 }
 
 /**

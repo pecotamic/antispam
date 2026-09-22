@@ -100,8 +100,8 @@ describe('validation', () => {
         expect(fetchMock).not.toHaveBeenCalled()
         // An empty required field prompts to fill it in; the address format
         // is only reported once there is something to judge.
-        expect(errorOf('email')).toBe('Bitte ausfüllen.')
-        expect(errorOf('message')).toBe('Bitte ausfüllen.')
+        expect(errorOf('email')).toBe('Please fill this in.')
+        expect(errorOf('message')).toBe('Please fill this in.')
     })
 
     it('reports an unticked consent box despite the hidden input', async () => {
@@ -111,7 +111,7 @@ describe('validation', () => {
         await submit()
 
         expect(fetchMock).not.toHaveBeenCalled()
-        expect(errorOf('consent[]')).toBe('Bitte bestätigen.')
+        expect(errorOf('consent[]')).toBe('Please confirm.')
     })
 
     it('reports a malformed address once one is entered', async () => {
@@ -121,7 +121,7 @@ describe('validation', () => {
         await submit()
 
         expect(fetchMock).not.toHaveBeenCalled()
-        expect(errorOf('email')).toBe('Bitte eine gültige E-Mail-Adresse eingeben.')
+        expect(errorOf('email')).toBe('Please enter a valid email address.')
     })
 
     it('clears a message once the field is filled in', async () => {
@@ -134,11 +134,24 @@ describe('validation', () => {
         expect(errorOf('email')).toBe('')
     })
 
-    it('accepts messages in another language', async () => {
-        setupContactForms({ proof: false, messages: { required: 'Please fill in.' } })
+    /**
+     * The server renders the site's translations into the page; these are the
+     * defaults a direct import falls back to.
+     */
+    it('takes the messages the server rendered', async () => {
+        setupContactForms({ proof: false, messages: { required: 'Bitte ausfüllen.' } })
         await submit()
 
-        expect(errorOf('message')).toBe('Please fill in.')
+        expect(errorOf('message')).toBe('Bitte ausfüllen.')
+    })
+
+    it('keeps the remaining defaults when one message is overridden', async () => {
+        setupContactForms({ proof: false, messages: { required: 'Bitte ausfüllen.' } })
+        fillInValidly()
+        field('email').value = 'anna@example'
+        await submit()
+
+        expect(errorOf('email')).toBe('Please enter a valid email address.')
     })
 
     /**

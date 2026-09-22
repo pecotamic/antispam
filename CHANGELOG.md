@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.3.1
+
+Four things the addon assumed about the site it runs on, found by asking what
+it would do on a site other than the one it was written for.
+
+### Only the configured forms, everywhere
+
+`forms` now governs the markup as well as the judging. A page whose only form
+is left out of that list is passed through exactly as the site wrote it — in
+0.3.0 it was modified anyway. Forms are recognised by their action
+(`/!/forms/<handle>`) on an actual form tag, so prose that merely mentions the
+path is no longer mistaken for a form page.
+
+The frontend attaches by that action too, rather than by the class name 0.3.0
+assumed (`form.contact-form`), which no Statamic site has unless its templates
+happen to set it.
+
+### The frontend no longer blocks what it cannot explain
+
+On a template without `.field-error` containers, 0.3.0 prevented the submit in
+silence — the visitor clicked Send and nothing happened at all. It now checks
+whether it has anywhere to report before validating, and hands over to the
+browser's own validation when it does not.
+
+### Messages are translations
+
+They were German, written into the JavaScript, and reachable by nothing. They
+are translations now, rendered by the server in the site's locale — English by
+default, German alongside:
+
+``` bash
+php artisan vendor:publish --tag=pecotamic-antispam-translations
+```
+
+The status classes (`did-succeed`, `did-fail`) are settable at the tag with
+`success_class` and `failure_class`. Both messages and classes merge key by
+key, so overriding one no longer drops the others.
+
+### The pixel
+
+The `.png` route served a GIF; it serves a PNG. The image is marked
+`fetchpriority="low"` — it has seconds to arrive and no business competing with
+the page's own images.
+
+### Upgrading from 0.3.0
+
+Nothing to do. If your templates relied on the frontend attaching to
+`form.contact-form`, that still works: the selector now comes from the server
+and matches your protected forms by action.
+
 ## 0.3.0
 
 The browser-side protection is now placed by the addon, not by a tag the site

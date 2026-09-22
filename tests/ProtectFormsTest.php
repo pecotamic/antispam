@@ -62,6 +62,42 @@ class ProtectFormsTest extends TestCase
         $this->assertTrue($names->contains(app(TimingCookie::class)->name()));
     }
 
+    /**
+     * A page whose only form is not in the "forms" configuration is none of
+     * the addon's business, and its markup must come through untouched.
+     */
+    public function test_it_leaves_pages_with_only_unprotected_forms_alone(): void
+    {
+        config()->set('pecotamic.antispam.forms', ['contact']);
+
+        $page = '<html><head></head><body>'
+            .'<form action="/!/forms/brustrechner"></form>'
+            .'</body></html>';
+
+        $this->assertSame($page, $this->through($page));
+    }
+
+    public function test_it_acts_when_a_protected_form_shares_the_page(): void
+    {
+        config()->set('pecotamic.antispam.forms', ['contact']);
+
+        $page = '<html><head></head><body>'
+            .'<form action="/!/forms/brustrechner"></form>'
+            .'<form action="/!/forms/contact"></form>'
+            .'</body></html>';
+
+        $this->assertStringContainsString('data-pecotamic-antispam', $this->through($page));
+    }
+
+    public function test_the_wildcard_covers_every_form(): void
+    {
+        config()->set('pecotamic.antispam.forms', ['*']);
+
+        $page = '<html><head></head><body><form action="/!/forms/whatever"></form></body></html>';
+
+        $this->assertStringContainsString('data-pecotamic-antispam', $this->through($page));
+    }
+
     public function test_it_leaves_pages_without_a_form_alone(): void
     {
         $html = $this->through('<html><body><p>Über uns</p></body></html>');
