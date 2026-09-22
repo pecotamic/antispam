@@ -4,7 +4,7 @@ namespace Pecotamic\Antispam\Rules;
 
 use Pecotamic\Antispam\Candidate;
 use Pecotamic\Antispam\SignedTimestamp;
-use Pecotamic\Antispam\TagPresence;
+use Pecotamic\Antispam\ProtectionReach;
 
 /**
  * Requires evidence that a human interacted with the form.
@@ -25,7 +25,7 @@ use Pecotamic\Antispam\TagPresence;
  */
 class Interaction extends ProofRule
 {
-    public function __construct(TagPresence $presence, private readonly SignedTimestamp $timestamp)
+    public function __construct(ProtectionReach $presence, private readonly SignedTimestamp $timestamp)
     {
         parent::__construct($presence);
     }

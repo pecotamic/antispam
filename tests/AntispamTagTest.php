@@ -2,9 +2,14 @@
 
 namespace Tests\Unit;
 
-use Pecotamic\Antispam\Assets;
+use Pecotamic\Antispam\PageState;
 use Tests\TestCase;
 
+/**
+ * The tag no longer carries the markup. With injection on it contributes
+ * configuration only, which is what makes its placement a non-issue: wherever
+ * it sits, the middleware still puts the markup before </body>.
+ */
 class AntispamTagTest extends TestCase
 {
     protected function setUp(): void
@@ -12,75 +17,54 @@ class AntispamTagTest extends TestCase
         parent::setUp();
 
         view()->addNamespace('antispamtest', __DIR__.'/views');
+        config()->set('pecotamic.antispam.rules.pixel.weight', 60);
     }
 
-    /**
-     * Rendered through a real Antlers view: the bare parser does not resolve
-     * addon tags, so parsing a string would test something the application
-     * never does.
-     */
     private function render(string $view = 'tag'): string
     {
         return (string) view("antispamtest::{$view}")->render();
     }
 
-    public function test_it_renders_the_pixel_and_the_module(): void
+    public function test_it_renders_nothing_while_the_middleware_places_the_markup(): void
     {
-        config()->set('pecotamic.antispam.rules.pixel.weight', 60);
+        $this->assertSame('', trim($this->render()));
+    }
+
+    public function test_it_passes_parameters_on_to_the_frontend(): void
+    {
+        $this->render('params');
+
+        $this->assertSame([
+            'selector' => 'form.enquiry',
+            'eventName' => 'sent',
+        ], app(PageState::class)->options());
+    }
+
+    /**
+     * A page may carry the tag more than once; the options accumulate rather
+     * than the last occurrence winning outright.
+     */
+    public function test_options_from_several_occurrences_accumulate(): void
+    {
+        $this->render('params');
+        $this->render('tag');
+
+        $this->assertArrayHasKey('selector', app(PageState::class)->options());
+    }
+
+    public function test_with_injection_off_the_tag_renders_the_markup_itself(): void
+    {
+        config()->set('pecotamic.antispam.inject', false);
 
         $output = $this->render();
 
         $this->assertStringContainsString('/!/pecotamic-antispam/p.png', $output);
-        $this->assertStringContainsString('/!/pecotamic-antispam/js/', $output);
-        $this->assertStringContainsString(app(Assets::class)->fingerprint(), $output);
-        $this->assertStringContainsString('type="module"', $output);
+        $this->assertStringContainsString('data-pecotamic-antispam', $output);
     }
 
-    /**
-     * The whole reason the configuration is rendered server-side: the proof
-     * field name exists once, in the config the server reads it from. A second
-     * copy in the frontend would drift, and a proof under the wrong name is
-     * indistinguishable from no proof at all.
-     */
-    public function test_it_passes_the_configured_proof_field_to_the_frontend(): void
+    public function test_with_injection_off_it_still_renders_only_once(): void
     {
-        config()->set('pecotamic.antispam.rules.interaction.weight', 60);
-        config()->set('pecotamic.antispam.rules.interaction.field', 'nachweis');
-
-        $config = $this->renderedConfig();
-
-        $this->assertSame('nachweis', $config['proof']['field']);
-        $this->assertStringContainsString('/!/pecotamic-antispam/proof', $config['proof']['endpoint']);
-    }
-
-    public function test_it_tells_the_frontend_to_skip_a_proof_when_the_rule_is_off(): void
-    {
-        config()->set('pecotamic.antispam.rules.interaction.weight', 0);
-
-        $this->assertFalse($this->renderedConfig()['proof']);
-    }
-
-    public function test_it_renders_no_pixel_when_the_rule_is_off(): void
-    {
-        config()->set('pecotamic.antispam.rules.pixel.weight', 0);
-
-        $this->assertStringNotContainsString('p.png', $this->render());
-    }
-
-    public function test_a_site_can_override_options_at_the_tag(): void
-    {
-        $config = $this->renderedConfig('params');
-
-        $this->assertSame('form.enquiry', $config['selector']);
-        $this->assertSame('sent', $config['eventName']);
-    }
-
-    /**
-     * Several forms on a page must not each pull in the module and the pixel.
-     */
-    public function test_it_renders_once_however_often_it_appears(): void
-    {
-        config()->set('pecotamic.antispam.rules.pixel.weight', 60);
+        config()->set('pecotamic.antispam.inject', false);
 
         $output = $this->render('thrice');
 
@@ -89,12 +73,29 @@ class AntispamTagTest extends TestCase
     }
 
     /**
-     * @return array<string, mixed>
+     * The proof field name exists once, in the config the server reads it
+     * from. A second copy in the frontend would drift, and a proof sent under
+     * a stale name is indistinguishable from no proof at all.
      */
-    private function renderedConfig(string $view = 'tag'): array
+    public function test_the_frontend_is_told_the_configured_proof_field(): void
     {
-        preg_match('/data-pecotamic-antispam="([^"]*)"/', $this->render($view), $match);
+        config()->set('pecotamic.antispam.inject', false);
+        config()->set('pecotamic.antispam.rules.interaction.weight', 60);
+        config()->set('pecotamic.antispam.rules.interaction.field', 'nachweis');
 
-        return json_decode(html_entity_decode($match[1] ?? '{}'), true);
+        preg_match('/data-pecotamic-antispam="([^"]*)"/', $this->render(), $match);
+        $config = json_decode(html_entity_decode($match[1] ?? '{}'), true);
+
+        $this->assertSame('nachweis', $config['proof']['field']);
+    }
+
+    public function test_the_frontend_is_told_to_skip_a_proof_when_the_rule_is_off(): void
+    {
+        config()->set('pecotamic.antispam.inject', false);
+        config()->set('pecotamic.antispam.rules.interaction.weight', 0);
+
+        preg_match('/data-pecotamic-antispam="([^"]*)"/', $this->render(), $match);
+
+        $this->assertFalse(json_decode(html_entity_decode($match[1] ?? '{}'), true)['proof']);
     }
 }

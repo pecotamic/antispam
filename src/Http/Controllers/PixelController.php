@@ -5,7 +5,7 @@ namespace Pecotamic\Antispam\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Pecotamic\Antispam\PixelCookie;
-use Pecotamic\Antispam\TagPresence;
+use Pecotamic\Antispam\ProtectionReach;
 use Pecotamic\Antispam\TimingCookie;
 
 class PixelController
@@ -24,11 +24,11 @@ class PixelController
         Request $request,
         PixelCookie $pixel,
         TimingCookie $timing,
-        TagPresence $presence,
+        ProtectionReach $presence,
     ): Response {
-        // Under full static caching the tag never renders, but the pixel it
-        // placed in the cached page is still fetched — so this is where the
-        // tag's presence gets recorded there.
+        // Proof that the markup is reaching visitors. Only a real fetch tells
+        // us that; rendering the markup says nothing about pages served from a
+        // cache built earlier.
         $presence->record();
 
         // 1×1 transparent GIF.

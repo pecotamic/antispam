@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.3.0
+
+The browser-side protection is now placed by the addon, not by a tag the site
+has to add. Installing is `composer require` and nothing else.
+
+### Why
+
+The pixel is an `<img>`, which is valid in the body alone. Placed in the
+`<head>` it ends the head as far as the HTML parser is concerned, and
+everything after it — analytics, meta and link tags — is reparented into the
+body. A tag placed by hand invites exactly that, particularly on sites that
+collect their scripts in a stack rendered inside `<head>`, which is where the
+tag would most naturally be put. Injecting before `</body>` is correct whatever
+the templates look like, and it removes the integration step altogether.
+
+### Changes
+
+- The markup is injected into every page carrying a Statamic form, before
+  `</body>`. Fragments, non-HTML responses and error responses are left alone.
+- `{{ antispam }}` is no longer required. It now contributes per-page options
+  (`selector`, `error_selector`, `consent_field`, `event_name`) and renders
+  nothing, so its position no longer matters.
+- New `inject` config option. Set it to `false` to place the markup yourself
+  with `{{ antispam }}` — inside the body.
+- The middleware `IssueFormTimingCookie` is now `ProtectForms`; it issues the
+  cookie and places the markup. `TagPresence` is now `ProtectionReach`, since
+  what matters is that the markup reaches visitors, not that a tag exists.
+- Full measure static caching now works without intervention: the markup is
+  part of what gets cached, and the pixel in a cached page still reaches PHP.
+
+### Upgrading from 0.2.0
+
+Remove `{{ antispam }}` from your templates — or leave it, it is harmless and
+still useful for passing options. Nothing else to do.
+
 ## 0.2.0
 
 A rewrite of how submissions are judged, and the arrival of a frontend.

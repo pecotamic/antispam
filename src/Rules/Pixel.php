@@ -4,7 +4,7 @@ namespace Pecotamic\Antispam\Rules;
 
 use Pecotamic\Antispam\Candidate;
 use Pecotamic\Antispam\PixelCookie;
-use Pecotamic\Antispam\TagPresence;
+use Pecotamic\Antispam\ProtectionReach;
 
 /**
  * Requires that the form page was actually loaded, subresources and all.
@@ -21,7 +21,7 @@ use Pecotamic\Antispam\TagPresence;
  */
 class Pixel extends ProofRule
 {
-    public function __construct(TagPresence $presence, private readonly PixelCookie $cookie)
+    public function __construct(ProtectionReach $presence, private readonly PixelCookie $cookie)
     {
         parent::__construct($presence);
     }

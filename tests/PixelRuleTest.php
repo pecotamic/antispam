@@ -17,7 +17,7 @@ class PixelRuleTest extends TestCase
 
         // These tests are about a site that has the tag in its templates.
         // Without that, the proof rules stay quiet by design.
-        app(\Pecotamic\Antispam\TagPresence::class)->record();
+        app(\Pecotamic\Antispam\ProtectionReach::class)->record();
     }
 
     public function test_the_endpoint_returns_an_image_and_leaves_a_cookie(): void
@@ -57,7 +57,7 @@ class PixelRuleTest extends TestCase
         );
 
         $response = app(\Pecotamic\Antispam\Http\Controllers\PixelController::class)(
-            $request, app(PixelCookie::class), $timing, app(\Pecotamic\Antispam\TagPresence::class)
+            $request, app(PixelCookie::class), $timing, app(\Pecotamic\Antispam\ProtectionReach::class)
         );
 
         $names = collect($response->headers->getCookies())->map->getName();

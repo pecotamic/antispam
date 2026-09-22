@@ -17,6 +17,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Automatic markup
+    |--------------------------------------------------------------------------
+    |
+    | The addon places its tracking pixel and frontend module on every page
+    | that carries a Statamic form, just before </body>. That needs no change
+    | to your templates, and it is the only placement that is always correct:
+    | the pixel is an <img>, which in the <head> would end the head for the
+    | HTML parser and push everything after it into the body.
+    |
+    | Turn this off only if you need the markup somewhere else — then place the
+    | {{ antispam }} tag yourself, inside the body.
+    |
+    */
+
+    'inject' => true,
+
+    /*
+    |--------------------------------------------------------------------------
     | Rejection threshold
     |--------------------------------------------------------------------------
     |
@@ -84,8 +102,8 @@ return [
         ],
 
         /*
-         | Evidence that the form page was really loaded: the {{ antispam }}
-         | tag renders a 1x1 image whose request leaves a cookie behind. Most
+         | Evidence that the form page was really loaded: the addon places a
+         | 1x1 image whose request leaves a cookie behind. Most
          | form spam is a blind POST that never fetches anything from the page,
          | so its absence says a great deal — and unlike the interaction proof
          | this covers every visitor, JavaScript or not.
@@ -106,7 +124,7 @@ return [
 
         /*
          | Evidence that a human interacted with the form: the frontend fetches
-         | a proof on the first mouse move, touch, key press or focus and sends
+         | a proof on the first mouse move, touch, key press or focus, and sends
          | it along in the field named here. Unlike the timing cookie — which
          | any bare GET collects — a proof costs an extra round trip that a
          | blind POST never makes.
@@ -233,6 +251,20 @@ return [
 
     'log' => 'rejected',
     'log_channel' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Protection reach
+    |--------------------------------------------------------------------------
+    |
+    | The pixel and interaction rules only judge once the protection markup has
+    | been seen doing its work, so that a site whose pages still come from a
+    | cache built before it existed is not rejected wholesale. This is how long
+    | a confirmed reach is remembered, in seconds.
+    |
+    */
+
+    'reach_remembered_for' => 604800,
 
     /*
     |--------------------------------------------------------------------------

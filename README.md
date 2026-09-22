@@ -14,21 +14,21 @@ receive the regular success response.
 
 ``` bash
 composer require pecotamic/antispam
+```
+
+That is all. Every Statamic form on the site is protected from that moment,
+with no template to edit and nothing to publish.
+
+The addon places what the browser side needs — a tracking pixel and a small
+frontend module — on every page that carries a form, just before `</body>`.
+Publish the config only if you want to change something:
+
+``` bash
 php artisan vendor:publish --tag=pecotamic-antispam-config
 ```
 
-Then add the tag once inside each form template, next to the form itself:
-
-``` antlers
-{{ antispam }}
-```
-
-That is the whole integration. The tag renders the tracking pixel, the frontend
-module and the configuration the frontend runs on — no Vite alias, no npm
-dependency, no build step, nothing to publish into the site's public
-directory.
-
-Protection is active for every form out of the box. Everything below is tuning.
+Configs are merged recursively, so a published config needs to name only what
+it changes; everything else is inherited, new rules included.
 
 ## Rules
 
@@ -59,17 +59,30 @@ from a fingerprinted route:
 /!/pecotamic-antispam/js/<fingerprint>/contact-form.js
 ```
 
-Two things follow from that. Client and server are released as one version, so
-a signal the client sends and a signal the server checks cannot drift apart.
-And a fix to the frontend reaches a site through `composer update` alone —
-without a Vite build that has to succeed on every site first.
+Two things follow. Client and server are released as one version, so a signal
+the client sends and a signal the server checks cannot drift apart. And a fix
+to the frontend reaches a site through `composer update` alone — no build on
+the site that has to succeed first.
 
 The files are plain JavaScript with JSDoc types, checked by `tsc --checkJs`.
 There is no build, so the file served is the file in the repository, and no
 compiled artefact can go stale against its source.
 
-Sites that need to deviate pass parameters at the tag rather than forking
-anything:
+### Why the addon places the markup itself
+
+Leaving it to a tag would add an integration step, and one that is easy to get
+wrong. The pixel is an `<img>`, which is only valid in the body: placed in the
+`<head>` it ends the head as far as the HTML parser is concerned, and
+everything after it — analytics, meta and link tags — is reparented into the
+body. Sites that collect their scripts in a stack rendered inside `<head>`
+invite exactly that mistake. Injecting before `</body>` is correct whatever the
+templates look like.
+
+### Configuring the frontend
+
+Where a site needs different selectors or messages, the tag passes them on. It
+renders nothing and may sit anywhere on the page — the markup still goes where
+it belongs:
 
 ``` antlers
 {{ antispam selector="form.enquiry" event_name="sent" }}
@@ -78,6 +91,22 @@ anything:
 `selector`, `error_selector`, `consent_field` and `event_name` are accepted.
 Everything else — above all the proof field name and endpoint — comes from the
 PHP config, so it exists once rather than once per side.
+
+### Placing the markup yourself
+
+If the automatic placement does not suit a layout, turn it off and place the
+tag instead:
+
+``` php
+'inject' => false,
+```
+
+``` antlers
+{{ antispam }}
+```
+
+Inside the body, then — never in a stack rendered in `<head>`, for the reason
+above. The addon says so after an install or update if the tag is missing.
 
 ### What the frontend does and does not do
 
@@ -92,17 +121,16 @@ the server nothing to detect, and a stripped honeypot is indistinguishable from
 an empty one — the failure is silent and total. There is a test for exactly
 this.
 
-### Without the tag
+### Before the protection has reached anyone
 
-The proof rules ask for evidence only the tag produces, so on a site that has
-not added it they stay quiet rather than reject everything. They switch
-themselves on once the tag has been seen — rendered, or its pixel fetched.
+The proof rules ask for evidence only the markup produces, and stay quiet until
+that markup has been seen doing its work — until a pixel has actually been
+fetched.
 
-This is not a convenience. Weighted at 60 each, a missing pixel and a missing
-interaction proof clear the threshold together, so without this a `composer
-update` alone would swallow every enquiry on a site whose templates had not
-been touched yet — silently, because the visitor is shown a success message
-either way. The addon also says so after an install or update.
+Weighted at 60 each, a missing pixel and a missing interaction proof clear the
+threshold together, so without this a site upgrading while its pages sit in a
+full static cache built before the markup existed would swallow every enquiry —
+silently, since the visitor is shown a success message either way.
 
 ### The two proofs
 

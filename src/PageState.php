@@ -3,22 +3,45 @@
 namespace Pecotamic\Antispam;
 
 /**
- * Tracks what the tag has already put on the current page.
+ * What the current page has said about its protection.
  *
- * The Antlers context cannot carry this: each tag occurrence gets its own, so
- * a page with a footer form as well as a page form would render the pixel and
- * the module once per form. Browsers would deduplicate an identical module URL
- * on their own, but emitting the markup three times is still wrong.
+ * The {{ antispam }} tag renders while the page is built; the middleware acts
+ * on the finished response. This carries what the tag said across that gap.
  */
 class PageState
 {
-    private bool $rendered = false;
+    private bool $placed = false;
+
+    /** @var array<string, mixed> */
+    private array $options = [];
 
     /**
-     * True the first time it is asked, false every time after.
+     * True the first time it is asked, false every time after — so a page with
+     * several forms places the markup once.
      */
-    public function claimRendering(): bool
+    public function claimMarkup(): bool
     {
-        return $this->rendered ? false : $this->rendered = true;
+        return $this->placed ? false : $this->placed = true;
+    }
+
+    public function markupPlaced(): bool
+    {
+        return $this->placed;
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function configure(array $options): void
+    {
+        $this->options = array_merge($this->options, $options);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function options(): array
+    {
+        return $this->options;
     }
 }

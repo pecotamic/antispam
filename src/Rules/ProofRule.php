@@ -3,7 +3,7 @@
 namespace Pecotamic\Antispam\Rules;
 
 use Pecotamic\Antispam\Candidate;
-use Pecotamic\Antispam\TagPresence;
+use Pecotamic\Antispam\ProtectionReach;
 
 /**
  * Base for rules that demand evidence the {{ antispam }} tag produces.
@@ -14,7 +14,7 @@ use Pecotamic\Antispam\TagPresence;
  */
 abstract class ProofRule extends Rule
 {
-    public function __construct(private readonly TagPresence $presence)
+    public function __construct(private readonly ProtectionReach $presence)
     {
     }
 

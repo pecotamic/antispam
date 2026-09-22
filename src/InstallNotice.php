@@ -40,13 +40,17 @@ class InstallNotice
     }
 
     /**
-     * The tag is what produces the evidence the proof rules ask for. Without
-     * it those rules stay quiet — nothing breaks, but a good part of the
-     * protection is simply not running.
+     * With automatic placement off, the markup is the site's responsibility —
+     * and without it the pixel and interaction rules have nothing to judge.
+     * Nothing is wrongly rejected, but that part of the protection is idle.
      */
     private function missingTag(): ?string
     {
-        if ($this->weighs('pixel') === false && $this->weighs('interaction') === false) {
+        if (config('pecotamic.antispam.inject', true)) {
+            return null;
+        }
+
+        if (!$this->weighs('pixel') && !$this->weighs('interaction')) {
             return null;
         }
 
@@ -55,13 +59,14 @@ class InstallNotice
         }
 
         return implode(PHP_EOL, [
-            '  <fg=yellow>The pixel and interaction checks are not running.</>',
-            '  They need the tag in your form template:',
+            '  <fg=yellow>Automatic placement is off and no template uses the tag,</>',
+            '  <fg=yellow>so the pixel and interaction checks have nothing to judge.</>',
+            '',
+            '  Either set "inject" back to true, or place the tag inside the',
+            '  body of your form template — never in a stack rendered in <head>,',
+            '  as the pixel is an <img>:',
             '',
             '      <fg=green>{{ antispam }}</>',
-            '',
-            '  Until it is there, those two rules stay quiet. The remaining',
-            '  rules are unaffected, so nothing is rejected that should not be.',
         ]);
     }
 

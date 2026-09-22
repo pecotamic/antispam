@@ -5,21 +5,21 @@ namespace Tests\Unit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Pecotamic\Antispam\Antispam;
-use Pecotamic\Antispam\TagPresence;
+use Pecotamic\Antispam\ProtectionReach;
 use Pecotamic\Antispam\TimingCookie;
 use Tests\TestCase;
 
 /**
- * The proof rules ask for evidence only the {{ antispam }} tag produces. On a
- * site that has not added the tag, that evidence can never arrive — so the
- * rules must stay quiet there rather than reject every genuine submission.
+ * The proof rules ask for evidence only the protection markup produces. Where
+ * that markup is not reaching pages, the evidence can never arrive — so the
+ * rules must stay quiet rather than reject every genuine submission.
  *
- * Without this, a composer update alone would silently swallow every enquiry
- * on a site whose templates had not been touched yet: pixel (60) and
- * interaction (60) together clear the threshold of 100, and the visitor is
+ * Pixel (60) and interaction (60) together clear the threshold of 100, so
+ * without this a site upgrading while pages sit in a static cache built before
+ * the markup existed would silently swallow every enquiry, the visitor being
  * shown a success message either way.
  */
-class TagPresenceTest extends TestCase
+class ProtectionReachTest extends TestCase
 {
     protected function getEnvironmentSetUp($app)
     {
@@ -30,7 +30,7 @@ class TagPresenceTest extends TestCase
         $app['config']->set('pecotamic.antispam.rules.interaction.weight', 60);
     }
 
-    public function test_a_genuine_enquiry_survives_on_a_site_without_the_tag(): void
+    public function test_a_genuine_enquiry_survives_before_the_markup_has_reached_anyone(): void
     {
         $assessment = $this->visitor()->assess($this->submission([
             'name' => 'Anna Weber',
@@ -44,9 +44,9 @@ class TagPresenceTest extends TestCase
         );
     }
 
-    public function test_the_same_visitor_is_rejected_once_the_tag_is_in_use(): void
+    public function test_the_same_visitor_is_rejected_once_the_markup_is_reaching_pages(): void
     {
-        app(TagPresence::class)->record();
+        app(ProtectionReach::class)->record();
 
         $this->assertTrue($this->visitor()->rejects($this->submission([
             'name' => 'Anna Weber',
@@ -54,29 +54,17 @@ class TagPresenceTest extends TestCase
         ])));
     }
 
-    public function test_the_tag_records_its_presence_as_it_renders(): void
-    {
-        view()->addNamespace('antispamtest', __DIR__.'/views');
-
-        $this->assertFalse(app(TagPresence::class)->confirmed());
-
-        view('antispamtest::tag')->render();
-
-        $this->assertTrue(app(TagPresence::class)->confirmed());
-    }
-
     /**
-     * Under full static caching the page is served without PHP and the tag
-     * never renders — but the pixel it left in the cached page is still
-     * fetched, which is where the presence gets recorded instead.
+     * Only a real fetch counts as reach. That the markup was rendered says
+     * nothing about pages served from a cache built before it existed.
      */
-    public function test_the_pixel_endpoint_records_it_too(): void
+    public function test_a_pixel_fetch_records_reach(): void
     {
-        $this->assertFalse(app(TagPresence::class)->confirmed());
+        $this->assertFalse(app(ProtectionReach::class)->confirmed());
 
         $this->get('/!/pecotamic-antispam/p.png')->assertOk();
 
-        $this->assertTrue(app(TagPresence::class)->confirmed());
+        $this->assertTrue(app(ProtectionReach::class)->confirmed());
     }
 
     /**

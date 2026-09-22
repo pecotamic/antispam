@@ -20,16 +20,31 @@ class InstallNoticeTest extends TestCase
         config()->set('pecotamic.antispam.rules.interaction.weight', 60);
     }
 
-    public function test_it_says_the_proof_rules_are_not_running_without_the_tag(): void
+    /**
+     * With automatic placement on there is nothing to install, so there is
+     * nothing to say.
+     */
+    public function test_it_stays_quiet_while_placement_is_automatic(): void
     {
         $this->withViews('<form>{{ fields }}</form>');
 
-        $this->assertStringContainsString('{{ antispam }}', $this->notice());
-        $this->assertStringContainsString('not running', $this->notice());
+        $this->assertSame('', $this->notice());
     }
 
-    public function test_it_stays_quiet_once_the_tag_is_in_a_template(): void
+    public function test_it_speaks_up_when_placement_is_off_and_no_tag_is_used(): void
     {
+        config()->set('pecotamic.antispam.inject', false);
+        $this->withViews('<form>{{ fields }}</form>');
+
+        $notice = $this->notice();
+
+        $this->assertStringContainsString('{{ antispam }}', $notice);
+        $this->assertStringContainsString('nothing to judge', $notice);
+    }
+
+    public function test_it_stays_quiet_when_placement_is_off_but_the_tag_is_used(): void
+    {
+        config()->set('pecotamic.antispam.inject', false);
         $this->withViews('<form>{{ antispam }}{{ fields }}</form>');
 
         $this->assertSame('', $this->notice());
@@ -40,6 +55,7 @@ class InstallNoticeTest extends TestCase
      */
     public function test_it_stays_quiet_when_the_proof_rules_are_off(): void
     {
+        config()->set('pecotamic.antispam.inject', false);
         config()->set('pecotamic.antispam.rules.pixel.weight', 0);
         config()->set('pecotamic.antispam.rules.interaction.weight', 0);
         $this->withViews('<form>{{ fields }}</form>');
@@ -49,7 +65,6 @@ class InstallNoticeTest extends TestCase
 
     public function test_it_reports_a_published_config_from_before_the_rules_key(): void
     {
-        $this->withViews('<form>{{ antispam }}</form>');
         $this->withPublishedConfig("<?php return ['patterns' => [], 'minimum_fill_time' => 5];");
 
         $notice = $this->notice();
@@ -61,7 +76,6 @@ class InstallNoticeTest extends TestCase
 
     public function test_it_accepts_a_current_published_config(): void
     {
-        $this->withViews('<form>{{ antispam }}</form>');
         $this->withPublishedConfig("<?php return ['threshold' => 100, 'rules' => []];");
 
         $this->assertSame('', $this->notice());

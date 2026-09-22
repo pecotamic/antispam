@@ -18,7 +18,7 @@ class InteractionRuleTest extends TestCase
 
         // These tests are about a site that has the tag in its templates.
         // Without that, the proof rules stay quiet by design.
-        app(\Pecotamic\Antispam\TagPresence::class)->record();
+        app(\Pecotamic\Antispam\ProtectionReach::class)->record();
     }
 
     public function test_the_endpoint_hands_out_a_readable_proof(): void

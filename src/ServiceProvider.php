@@ -2,7 +2,7 @@
 
 namespace Pecotamic\Antispam;
 
-use Pecotamic\Antispam\Http\Middleware\IssueFormTimingCookie;
+use Pecotamic\Antispam\Http\Middleware\ProtectForms;
 use Pecotamic\Antispam\PageState;
 use Pecotamic\Antispam\Listeners\RejectSpamSubmission;
 use Pecotamic\Antispam\Rules\Duplicate;
@@ -61,7 +61,7 @@ class ServiceProvider extends AddonServiceProvider
 
     protected $middlewareGroups = [
         'web' => [
-            IssueFormTimingCookie::class,
+            ProtectForms::class,
         ],
     ];
 
