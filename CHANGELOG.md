@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.2
+
+Dispatch the submit event on both submit paths.
+
+A form with a `redirect` target is submitted by the browser rather than by the
+frontend, and on that path the event was never dispatched. Conversion tracking
+listening for it — the common use — therefore missed every submission on such a
+form, and missed it silently, since the form itself worked either way.
+
+It now fires on both paths, before the navigation starts, so a tracker using
+`sendBeacon` still gets its request away. The payload is unchanged.
+
 ## 0.3.1
 
 Four things the addon assumed about the site it runs on, found by asking what

@@ -106,6 +106,25 @@ export const setupContactForms = (options = {}) => {
             })
         }
 
+        /**
+         * Announces that the form went off, for whatever listens — conversion
+         * tracking, most often.
+         *
+         * Dispatched on both paths: the one we send ourselves, and the one the
+         * browser sends. A listener that only ever heard about the first would
+         * miss every submission on a form that has a redirect target, and miss
+         * it silently, since the form itself works either way.
+         *
+         * It says "submitted", not "succeeded" — on the AJAX path it fires
+         * whatever the response was, and on the native path the response has
+         * not arrived yet.
+         */
+        const announce = () => {
+            document.dispatchEvent(new CustomEvent(config.eventName, {
+                detail: { action: form.action, id: form.id, name: form.getAttribute('name') },
+            }))
+        }
+
         /** @param {boolean} submitting */
         const setSubmitting = submitting => {
             const button = form.querySelector('[type="submit"]')
@@ -135,6 +154,9 @@ export const setupContactForms = (options = {}) => {
             // browser's own submission does the work.
             if (!hasErrors && data.get('_redirect')) {
                 setSubmitting(true)
+                // Before the navigation starts; a tracker using sendBeacon
+                // still gets its request away.
+                announce()
                 return
             }
 
@@ -159,9 +181,7 @@ export const setupContactForms = (options = {}) => {
                 setSubmitting(false)
             }
 
-            document.dispatchEvent(new CustomEvent(config.eventName, {
-                detail: { action: form.action, id: form.id, name: form.getAttribute('name') },
-            }))
+            announce()
         })
     })
 }

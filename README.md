@@ -123,7 +123,14 @@ it belongs:
 ```
 
 `selector`, `error_selector`, `consent_field`, `event_name`, `success_class`
-and `failure_class` are accepted. Everything else — above all the proof field
+and `failure_class` are accepted.
+
+The event named by `event_name` (`submit-form` by default) is dispatched on
+`document` after a submission, carrying `{ action, id, name }` — on both
+submit paths: the one the frontend sends itself, and the one it leaves to the
+browser when the form has a redirect target. Conversion tracking can listen for
+it without having to know which path a given form takes. It means "submitted",
+not "succeeded". Everything else — above all the proof field
 name and endpoint — comes from the PHP config, so it exists once rather than
 once per side.
 
