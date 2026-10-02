@@ -19,7 +19,7 @@ class ProtectedForms
      * merely writes about /!/forms/contact is not a form page, and its markup
      * should be left as its author wrote it.
      */
-    private const FORM_ACTION = '#<form\b[^>]*\baction\s*=\s*["\']?[^"\'>\s]*/!/forms/([A-Za-z0-9_-]+)#i';
+    public const FORM_ACTION = '#<form\b[^>]*\baction\s*=\s*["\']?[^"\'>\s]*/!/forms/([A-Za-z0-9_-]+)[^>]*>#i';
 
     public function includes(string $handle): bool
     {

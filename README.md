@@ -203,6 +203,42 @@ whose ad blocker swallowed the pixel has the interaction proof. Either alone
 gets them through. A blind POST has neither and exceeds the threshold on that
 count alone.
 
+## The honeypot
+
+Statamic names a honeypot field per form and silently discards any submission
+that fills it — but it does not render the field. It only exposes the name as
+`{{ honeypot }}`, leaving each template to build the input. Two things go wrong
+with that, and both are invisible:
+
+A template that never built the field protects nothing, and nothing says so.
+
+A field named after a real one gets filled in by the browser, not by a bot — and
+the visitor's enquiry is thrown away while they are shown a success message.
+`firstname` is the usual culprit: it matches what browsers autofill as
+`given-name`.
+
+So the addon renders the field itself, into every protected form that does not
+already have one, hidden and out of the tab order:
+
+``` php
+'honeypot' => true,
+```
+
+A form that renders its own keeps it — the check is per form, so nothing is
+ever doubled, and that is what makes this safe to leave on. Set it to `false`
+to render the field yourself.
+
+The name still comes from the form's own `honeypot` setting, because that is
+what Statamic checks against. Keep it away from anything a browser knows:
+
+``` yaml
+# resources/forms/contact.yaml
+honeypot: contact_ref
+```
+
+The addon warns after an install or update if a protected form uses a name
+browsers autofill.
+
 ## Scoring
 
 With the default weight of 100 against a threshold of 100, each rule rejects on

@@ -4,6 +4,7 @@ namespace Pecotamic\Antispam\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Pecotamic\Antispam\Honeypot;
 use Pecotamic\Antispam\Markup;
 use Pecotamic\Antispam\PageState;
 use Pecotamic\Antispam\ProtectedForms;
@@ -40,6 +41,7 @@ class ProtectForms
         private readonly Markup $markup,
         private readonly PageState $state,
         private readonly ProtectedForms $forms,
+        private readonly Honeypot $honeypot,
     ) {
     }
 
@@ -53,9 +55,75 @@ class ProtectForms
 
         $response->headers->setCookie($this->cookie->issue($request));
 
+        $this->addHoneypots($response);
         $this->inject($response);
 
         return $response;
+    }
+
+    /**
+     * Puts the decoy field into each protected form that lacks one.
+     *
+     * Statamic names the field and discards submissions that fill it, but
+     * leaves the rendering to the template — so a template that never built it
+     * protects nothing, and does so silently. Rendering it here means a site
+     * gets its honeypot by installing the addon.
+     *
+     * A form that already carries the field is left alone, which is what makes
+     * this safe to have on by default: it cannot produce a second one.
+     */
+    private function addHoneypots(Response $response): void
+    {
+        if (!$this->honeypot->enabled()) {
+            return;
+        }
+
+        $html = (string) $response->getContent();
+
+        if (!preg_match_all(ProtectedForms::FORM_ACTION, $html, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
+            return;
+        }
+
+        // Rear to front, so each insertion leaves the offsets ahead of it
+        // untouched. Offsets rather than a search for the tag's text: two forms
+        // on a page often have byte-identical opening tags, and searching would
+        // keep finding the first of them.
+        foreach (array_reverse($matches) as $match) {
+            [$tag, $offset] = $match[0];
+            $handle = $match[1][0];
+
+            if (!$field = $this->honeypotFor($handle, $html, $offset, strlen($tag))) {
+                continue;
+            }
+
+            $html = substr_replace($html, $field, $offset + strlen($tag), 0);
+        }
+
+        $response->setContent($html);
+    }
+
+    /**
+     * The field to add just after this form's opening tag, or '' for none.
+     *
+     * @param  int  $offset  where the opening tag begins
+     * @param  int  $length  how long it is
+     */
+    private function honeypotFor(string $handle, string $html, int $offset, int $length): string
+    {
+        if (!$this->forms->includes($handle)) {
+            return '';
+        }
+
+        if (!$name = $this->honeypot->nameFor($handle)) {
+            return '';
+        }
+
+        // Only this form's own markup counts: another form on the page having
+        // the field says nothing about this one.
+        $end = strpos($html, '</form>', $offset + $length);
+        $body = substr($html, $offset, ($end === false ? strlen($html) : $end) - $offset);
+
+        return $this->honeypot->presentIn($body, $name) ? '' : $this->honeypot->field($name);
     }
 
     private function inject(Response $response): void

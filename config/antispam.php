@@ -74,6 +74,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Honeypot field
+    |--------------------------------------------------------------------------
+    |
+    | Statamic names the honeypot and discards any submission that fills it,
+    | but it does not render the field — it only exposes the name as
+    | {{ honeypot }}, leaving each template to build the input. A template that
+    | never did protects nothing, and nobody notices.
+    |
+    | With this on, the addon renders the field into every protected form that
+    | does not already have one, hidden and out of the tab order. A form that
+    | renders its own keeps it; nothing is ever doubled.
+    |
+    | The name comes from the form's own "honeypot" setting. Keep it away from
+    | anything a browser recognises — a honeypot called "firstname" gets
+    | autofilled for the visitor and their enquiry is thrown away. The addon
+    | warns about such names after an install or update.
+    |
+    */
+
+    'honeypot' => true,
+
+    /*
+    |--------------------------------------------------------------------------
     | Rejection threshold
     |--------------------------------------------------------------------------
     |

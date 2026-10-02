@@ -4,6 +4,7 @@ namespace Pecotamic\Antispam;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
+use Statamic\Facades\Form;
 
 /**
  * What to tell the site's maintainer after composer install or update.
@@ -17,9 +18,16 @@ use Illuminate\Support\Facades\File;
  */
 class InstallNotice
 {
+    public function __construct(
+        private readonly Honeypot $honeypot,
+        private readonly ProtectedForms $forms,
+    ) {
+    }
+
     public function printTo(Command $command): void
     {
         $problems = array_filter([
+            $this->autofilledHoneypots(),
             $this->missingTag(),
             $this->outdatedConfig(),
         ]);
@@ -44,6 +52,39 @@ class InstallNotice
      * and without it the pixel and interaction rules have nothing to judge.
      * Nothing is wrongly rejected, but that part of the protection is idle.
      */
+    /**
+     * A honeypot named after a real field is filled in by the browser, not by
+     * a bot — and the visitor's enquiry is discarded without a trace. Worth
+     * saying out loud, because nothing else about it is visible.
+     */
+    private function autofilledHoneypots(): ?string
+    {
+        $risky = collect(Form::all())
+            ->filter(fn ($form) => $this->forms->includes($form->handle()))
+            ->mapWithKeys(fn ($form) => [$form->handle() => $form->honeypot()])
+            ->filter(fn (string $name) => $this->honeypot->isAutofilled($name));
+
+        if ($risky->isEmpty()) {
+            return null;
+        }
+
+        return implode(PHP_EOL, [
+            '  <fg=yellow>These forms have a honeypot that browsers autofill:</>',
+            '',
+            ...$risky->map(fn (string $name, string $handle) => "      {$handle}: <fg=red>{$name}</>")->values()->all(),
+            '',
+            '  A visitor whose browser fills it in has their enquiry discarded,',
+            '  silently — they are shown a success message either way. Rename it',
+            '  in resources/forms/<handle>.yaml to something no browser knows,',
+            '  for instance:',
+            '',
+            '      <fg=green>honeypot: contact_ref</>',
+            '',
+            '  Remember to rename the input in your template too, unless the',
+            '  addon renders it for you.',
+        ]);
+    }
+
     private function missingTag(): ?string
     {
         if (config('pecotamic.antispam.inject', true)) {

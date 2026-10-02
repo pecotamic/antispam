@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.4.0
+
+### The addon renders the honeypot field
+
+Statamic names a honeypot per form and discards submissions that fill it, but
+it does not render the field — each template has to build it from
+`{{ honeypot }}`. A template that never did protects nothing, and nothing says
+so.
+
+The addon now renders it into every protected form that lacks one, hidden and
+out of the tab order. A form with its own keeps it; the check is per form, so
+nothing is doubled. Turn it off with `'honeypot' => false`.
+
+### A warning about autofilled honeypot names
+
+A honeypot named after a real field — `firstname` above all — is filled in by
+the browser rather than a bot, and the visitor's enquiry is discarded while
+they are shown a success message. The addon now says so after an install or
+update, listing the forms affected. The fix is to rename it in
+`resources/forms/<handle>.yaml` to something no browser recognises.
+
 ## 0.3.2
 
 Dispatch the submit event on both submit paths.

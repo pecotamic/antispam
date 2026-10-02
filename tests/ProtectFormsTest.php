@@ -107,13 +107,16 @@ class ProtectFormsTest extends TestCase
 
     /**
      * A fragment — a partial reload, an AJAX-rendered section — has no body to
-     * close, and guessing where to append would be worse than doing nothing.
+     * close, and guessing where to append the script would be worse than doing
+     * nothing. (The honeypot field is a separate matter and does go in; it
+     * needs no JavaScript. See HoneypotTest.)
      */
-    public function test_it_leaves_a_fragment_alone(): void
+    public function test_it_adds_no_script_to_a_fragment(): void
     {
         $fragment = '<div><form action="/!/forms/contact"></form></div>';
 
-        $this->assertSame($fragment, $this->through($fragment));
+        $this->assertStringNotContainsString('data-pecotamic-antispam', $this->through($fragment));
+        $this->assertStringNotContainsString('p.png', $this->through($fragment));
     }
 
     public function test_it_leaves_non_html_responses_alone(): void
